@@ -109,24 +109,37 @@ compTable = {
 
 
 def load_file():
-    if (len(sys.argv) < 2):
+    """
+    Loads an assembly source file, processes it by removing empty lines and comments, 
+    and returns the cleaned lines as a list.
+
+    If additional arguments are provided, it checks them against predefined settings 
+    and updates the settings dictionary if they are valid.
+
+    Returns:
+        list: A list of cleaned lines from the file, excluding comments and empty lines.
+    """
+    if len(sys.argv) < 2:
         print("Please enter a file path.")
 
-    if (len(sys.argv) > 2):
+    # Process additional arguments if provided
+    if len(sys.argv) > 2:
         for setting in sys.argv[2:]:
             if setting not in settings:
                 print(f"{setting} not a correct argument")
             else:
-                settings[setting] = True
+                settings[setting] = True  # Update valid settings
 
-    file_path = sys.argv[1]
+    file_path = sys.argv[1]  # Get the file path from command-line arguments
 
     lines = []
 
     try:
+        # Open the file and read its lines
         with open(file_path, 'r') as file:
             for line in file:
-                if ((line.strip() != '') and ('//') not in line):
+                # Strip whitespace and ignore empty lines and comments
+                if line.strip() != '' and '//' not in line:
                     lines.append(line.strip())
 
     except FileNotFoundError:
@@ -136,36 +149,76 @@ def load_file():
 
 
 def save_program(binaryString):
-    file_path = 'prog.hack'
+    """
+    Saves the given binary string representation of the assembled program to a file.
+
+    The output file is named 'prog.hack' and will be overwritten if it already exists.
+
+    Args:
+        binary_string (str): The binary representation of the assembled program.
+
+    Returns:
+        None
+    """
+    file_path = 'prog.hack'  # Output file name
 
     with open(file_path, 'w+') as file:
-        file.write(binaryString + '\n')
-    return
+        file.write(binaryString + '\n')  # write the binary string to the file
 
 
 def convert_to_binary(number):
+    """
+    Converts a given integer to a 15-bit binary string with leading zeros.
+
+    Args:
+        number (int): The integer to convert to binary.
+
+    Returns:
+        str: A 15-bit binary string representation of the number.
+    """
+
+    # converts number to binary and string removing '0b'
     binary_str = bin(number)[2:]
-    binary_16_bit = binary_str.zfill(15)
-    return binary_16_bit
+
+    # pad with leading zeros to ensure 15 bit length
+    binary_15_bit = binary_str.zfill(15)
+    return binary_15_bit
 
 
-def a_instruction(instruction, index, file, variableCounter):
+def a_instruction(instruction, index, file, variable_counter):
+    """
+    Processes an A-instruction from assembly and converts it into a 16-bit binary string.
+
+    If the instruction is a numeric constant, it is directly converted to binary. 
+    If it is a variable or label, it is stored in the symbol table with an assigned address.
+
+    Args:
+        instruction (str): The A-instruction (e.g., "@value").
+        index (int): The line number of the instruction in the source file.
+        file (str): The source file name (for debugging/logging purposes).
+        variable_counter (int): The next available memory address for new variables.
+
+    Returns:
+        tuple: A tuple containing:
+            - str: The 16-bit binary representation of the instruction.
+            - int: The updated variable counter.
+    """
+
+    # Debug flags
     if (settings['-v'] or settings['-l']):
         print(
             f"--- From a_instruction(instruction={instruction},index={index},file={file}) ---")
 
-    binaryString = '0'
-    instruction = instruction[1:]
+    binaryString = '0'  # A-instructions start with 0
+    instruction = instruction[1:]  # remove '@' prefix
 
     number_pattern = r"^[0-9]+$"
-    if (bool(re.match(number_pattern, instruction))):
+    if (re.match(number_pattern, instruction)):  # if instruction is a number
         binaryString += convert_to_binary(int(instruction))
     else:
         if instruction not in symbolTable:
-            # print(
-            #     f"Error on line {index} => {file[index]}, {instruction} not found in symbol table.")
-            symbolTable[instruction] = convert_to_binary(variableCounter)
-            variableCounter += 1
+            symbolTable[instruction] = convert_to_binary(variable_counter)
+            variable_counter += 1
 
         binaryString += symbolTable[instruction]
 
@@ -173,14 +226,31 @@ def a_instruction(instruction, index, file, variableCounter):
         print(
             f"--- Length test of {binaryString} = {len(binaryString) == 16}  ---")
 
-    return (binaryString + '\n', variableCounter)
+    return (binaryString + '\n', variable_counter)
 
 
 def c_instruction(dest, comp, jump):
+    """
+    Converts a C-instruction into its 16-bit binary representation.
+
+    A C-instruction consists of a computation (`comp`), an optional destination (`dest`), 
+    and an optional jump condition (`jump`). It is assembled into the format:
+
+        111 | comp bits | dest bits | jump bits
+
+    Args:
+        dest (str): The destination mnemonic (e.g., "D", "M", "A" or empty).
+        comp (str): The computation mnemonic (e.g., "D+A", "M-1").
+        jump (str): The jump mnemonic (e.g., "JGT", "JEQ", or empty).
+
+    Returns:
+        str: The 16-bit binary representation of the C-instruction.
+    """
+
+    # Debug flags
     if (settings['-v'] or settings['-l']):
         print(
             f"--- From c_instruction(dest={dest},comp={comp},jump={jump}) ---")
-
     if (settings['-v']):
         print(f"In symbol table: comp={compTable[comp]}")
         print(f"In symbol table: dest={symbolTable[dest]}")
@@ -188,6 +258,7 @@ def c_instruction(dest, comp, jump):
         print(
             f"Building the strings: {compTable[comp]}-{symbolTable[dest]}-{symbolTable[jump]}")
 
+    # Construct binary instruction
     binaryString = '111' + compTable[comp] + \
         symbolTable[dest] + symbolTable[jump]
 
@@ -198,24 +269,43 @@ def c_instruction(dest, comp, jump):
     if (len(binaryString) != 16):
         print(
             f"Error! Length of {binaryString} != 16; {len(binaryString)}. dest={dest}, comp={comp}, jump={jump}")
+        exit()
 
     return binaryString + '\n'
 
 
 def instruction_decode(file_array):
+    """
+    Decodes a list of assembly instructions and converts them into binary machine code.
+
+    This function processes both A-instructions and C-instructions, distinguishing between 
+    them based on their format. It also handles variable assignment for A-instructions.
+
+    Args:
+        file_array (list of str): List of assembly instructions, each as a string.
+
+    Returns:
+        str: A concatenated binary representation of the entire program.
+    """
+
     binaryString = ''
-    variableCounter = 16
+    variableCounter = 16  # Starting memory address for variables
+
     for index, line in enumerate(file_array):
+
+        # Identify instruction type
         hasDest = '=' in line
         hasJmp = ';' in line
         isAinst = '@' in line
         isLabel = ('(' or ')') in line
         isCinst = (not isAinst) and (not (isLabel))
 
+        # Default values
         dest = ''
         comp = ''
         jump = ''
 
+        # Split the instruction into its components based on '=' (dest) or ';' (jump)
         instrArray = re.split(r"[=;]", line)
 
         if (hasDest and hasJmp):
@@ -225,37 +315,61 @@ def instruction_decode(file_array):
         elif (hasJmp):
             comp, jump = instrArray
 
+        # Debug flags
         if (settings['-v']):
             print(f"Line number: {index}")
+
+        # Label was skipped on first pass
+        elif (isLabel):
+            print(
+                f"Error on line {index} => {file_array[index]}, {line} not found in symbol table.")
+            exit()
+
+        # Process A-instruction
         if (isAinst):
             temp, variableCounter = a_instruction(
                 line, index, file_array, variableCounter)
             binaryString += temp
 
+        # Process C-instruction
         elif (isCinst):
             binaryString += c_instruction(dest, comp, jump)
 
-        elif (isLabel):
-            print(
-                f"Error on line {index} => {file_array[index]}, {line} not found in symbol table.")
-
-    return binaryString
+    return binaryString + "\n"
 
 
 def fill_symbol_table(file):
+    """
+    Processes labels in the assembly file and fills the symbol table with their corresponding addresses.
+
+    This function scans the file for label declarations (enclosed in parentheses, e.g., "(LOOP)"),
+    assigns them memory addresses, and removes them from the instruction list.
+
+    Args:
+        file (list of str): The list of assembly instructions.
+
+    Modifies:
+        symbolTable (dict): Adds label names as keys and their corresponding binary addresses as values.
+        file (list of str): Removes label declarations from the instruction list.
+    """
+
     indexToDelete = []
+
     for index, line in enumerate(file):
-        isLabel = ("(" or ")") in line
-        if (not isLabel):
+        # Label check
+        is_label = line.startswith('(') and line.endswith(')')
+
+        if not is_label:
             continue
 
-        fixed_line = line.replace("(", "")
-        fixed_line = fixed_line.replace(")", "")
+        # Extract label name
+        fixed_line = line.replace("(", "").replace(")", "")
 
+        # Add to symbol table if not already
         if fixed_line not in symbolTable:
-
             indexToDelete.append((index, fixed_line))
 
+    # Remove labels from file and update symbol table with adjusted addresses
     for delta, (index, line) in enumerate(indexToDelete):
         symbolTable[line] = convert_to_binary(index-delta)
         del file[(index-delta)]
@@ -268,7 +382,7 @@ def main():
 
     fill_symbol_table(file_array)
 
-    binaryString += instruction_decode(file_array) + "\n"
+    binaryString = instruction_decode(file_array)
 
     binaryString = binaryString.strip()
 
