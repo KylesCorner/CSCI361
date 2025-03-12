@@ -43,7 +43,7 @@ It will make a file `prog.hack` in the same directory as the python file.
 ./test.sh
 ```
 
-This is a linux bash shell script that runs each program in the '/programs'
+This is a linux bash shell script that runs each program in the `/programs`
 directory. Checking the binary output to the corresponding file in
-'/difftables'.
+`/difftables`.
 
