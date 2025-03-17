@@ -13,7 +13,6 @@ settings = {
     '-l': False,  # Verify each binary string length
 }
 
-# TODO: add mirror entries, and rest of default symbols
 symbolTable = {
     'R0': '000000000000000',
     'SP': '000000000000000',
@@ -38,25 +37,10 @@ symbolTable = {
     'R15': '000000000001111',
     'SCREEN': '100000000000000',
     'KBD': '110000000000000',
+}
 
+jump_table = {
     '': '000',  # Empty instruction
-
-    'M': '001',  # Dest instructions
-    'D': '010',
-    'DM': '011',
-    'MD': '011',
-    'A': '100',
-    'AM': '101',
-    'MA': '101',
-    'AD': '110',
-    'DA': '110',
-    'ADM': '111',
-    'AMD': '111',
-    'MDA': '111',
-    'DAM': '111',
-    'DMA': '111',
-    'MAD': '111',
-
     'JGT': '001',  # Jump instructions
     'JEQ': '010',
     'JGE': '011',
@@ -65,7 +49,16 @@ symbolTable = {
     'JLE': '110',
     'JMP': '111',
 }
-
+dest_table = {
+    '': '000',  # Empty instruction
+    'M': '001',  # Dest instructions
+    'D': '010',
+    'DM': '011',
+    'A': '100',
+    'AM': '101',
+    'AD': '110',
+    'ADM': '111',
+}
 compTable = {
 
     '0': '0101010',  # Comp Instructions
@@ -185,7 +178,7 @@ def convert_to_binary(number):
     return binary_15_bit
 
 
-def a_instruction(instruction, index, file, variable_counter):
+def a_instruction(instruction, index, variable_counter):
     """
     Processes an A-instruction from assembly and converts it into a 16-bit binary string.
 
@@ -207,7 +200,7 @@ def a_instruction(instruction, index, file, variable_counter):
     # Debug flags
     if (settings['-v'] or settings['-l']):
         print(
-            f"--- From a_instruction(instruction={instruction},index={index},file={file}) ---")
+            f"--- From a_instruction(instruction={instruction},index={index} ---")
 
     binaryString = '0'  # A-instructions start with 0
     instruction = instruction[1:]  # remove '@' prefix
@@ -253,15 +246,16 @@ def c_instruction(dest, comp, jump):
             f"--- From c_instruction(dest={dest},comp={comp},jump={jump}) ---")
     if (settings['-v']):
         print(f"In symbol table: comp={compTable[comp]}")
-        print(f"In symbol table: dest={symbolTable[dest]}")
-        print(f"In symbol table: jump={symbolTable[jump]}")
+        print(f"In symbol table: dest={dest_table[dest]}")
+        print(f"In symbol table: jump={jump_table[jump]}")
         print(
-            f"Building the strings: {compTable[comp]}-{symbolTable[dest]}-{symbolTable[jump]}")
+            f"Building the strings: {compTable[comp]}-{dest_table[dest]}-{jump_table[jump]}")
 
     # Construct binary instruction
     binaryString = '111' + compTable[comp] + \
-        symbolTable[dest] + symbolTable[jump]
+        dest_table[dest] + jump_table[jump]
 
+    # More debug flags
     if (settings['-l']):
         print(
             f"--- Length test of {binaryString} = {len(binaryString) == 16}  ---")
@@ -293,13 +287,23 @@ def instruction_decode(file_array):
 
     for index, line in enumerate(file_array):
 
-        # Identify instruction type
+        # Label was skipped on first pass
+        is_label = line.startswith('(') and line.endswith(')')
+        if (is_label):
+            print(
+                f"Error on line {index} => {file_array[index]}, {line} not found in symbol table.")
+            exit()
+
+        # Process A-instruction if necessary
+        isAinst = '@' in line
+        if (isAinst):
+            temp, variableCounter = a_instruction(
+                line, index, variableCounter)
+            binaryString += temp
         hasDest = '=' in line
         hasJmp = ';' in line
-        isAinst = '@' in line
-        isLabel = ('(' or ')') in line
-        isCinst = (not isAinst) and (not (isLabel))
 
+        # C-instruction
         # Default values
         dest = ''
         comp = ''
@@ -307,7 +311,6 @@ def instruction_decode(file_array):
 
         # Split the instruction into its components based on '=' (dest) or ';' (jump)
         instrArray = re.split(r"[=;]", line)
-
         if (hasDest and hasJmp):
             dest, comp, jump = instrArray
         elif (hasDest):
@@ -315,25 +318,40 @@ def instruction_decode(file_array):
         elif (hasJmp):
             comp, jump = instrArray
 
+        # Process C-instruction if necessary
+        isCinst = comp in compTable
+        if (isCinst):
+
+            # Sort dest to save memory space
+            dest = "".join(sorted(dest))
+
+            # Invalid jump
+            if (jump not in jump_table):
+                print(
+                    f"Error on line {index} => {file_array[index]}, {line} : {jump} not found in jump table.")
+                exit()
+
+            # Invalid dest
+            if (dest not in dest_table):
+                print(
+                    f"Error on line {index} => {file_array[index]}, {line} : {dest} not found in dest table.")
+                exit()
+
+            binaryString += c_instruction(dest, comp, jump)
+
+        # Invalid instruction
+        if ((not isAinst) and (not isCinst)):
+            print(
+                f"Error on line {index} => {file_array[index]}, {line} is an invalid instruction.")
+            exit()
+        if (isAinst and isCinst):
+            print(
+                f"Error on line {index} => {file_array[index]}, {line} is an invalid instruction.")
+            exit()
+
         # Debug flags
         if (settings['-v']):
             print(f"Line number: {index}")
-
-        # Label was skipped on first pass
-        elif (isLabel):
-            print(
-                f"Error on line {index} => {file_array[index]}, {line} not found in symbol table.")
-            exit()
-
-        # Process A-instruction
-        if (isAinst):
-            temp, variableCounter = a_instruction(
-                line, index, file_array, variableCounter)
-            binaryString += temp
-
-        # Process C-instruction
-        elif (isCinst):
-            binaryString += c_instruction(dest, comp, jump)
 
     return binaryString + "\n"
 
@@ -354,6 +372,7 @@ def fill_symbol_table(file):
     """
 
     indexToDelete = []
+    delta = 0
 
     for index, line in enumerate(file):
         # Label check
