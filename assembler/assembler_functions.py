@@ -371,7 +371,6 @@ def fill_symbol_table(file):
     """
 
     indexToDelete = []
-    delta = 0
 
     for index, line in enumerate(file):
         # Label check
