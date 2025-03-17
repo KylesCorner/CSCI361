@@ -188,7 +188,6 @@ def a_instruction(instruction, index, variable_counter):
     Args:
         instruction (str): The A-instruction (e.g., "@value").
         index (int): The line number of the instruction in the source file.
-        file (str): The source file name (for debugging/logging purposes).
         variable_counter (int): The next available memory address for new variables.
 
     Returns:
