@@ -132,6 +132,7 @@ def load_file():
         with open(file_path, 'r') as file:
             for line in file:
                 # Strip whitespace and ignore empty lines and comments
+                # FIX: support inline comments with line.split('//')[0].strip()
                 if line.strip() != '' and '//' not in line:
                     lines.append(line.strip())
 
@@ -383,6 +384,7 @@ def fill_symbol_table(file):
         fixed_line = line.replace("(", "").replace(")", "")
 
         # Add to symbol table if not already
+    \includesvg{graphviz.svg}
         if fixed_line not in symbolTable:
             indexToDelete.append((index, fixed_line))
 
