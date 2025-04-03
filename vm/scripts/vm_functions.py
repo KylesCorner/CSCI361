@@ -69,7 +69,7 @@ def getPopD():
     return "@SP,AM=M-1,D=M,"
 
 def getPushD():
-    return "@SP,A=M,M=D,@SP,M=M+1",
+    return "@SP,A=M,M=D,@SP,M=M+1,"
 
 def pointerSeg(pushpop, seg, index):
     """
@@ -117,20 +117,26 @@ def pointerSeg(pushpop, seg, index):
         base_address = SEGLABEL[seg]
         if pushpop == "push":
             hack_code.extend([
-                f"@{index}", "D=A",
-                f"@{base_address}", "A=M", "A=D+A",
+                f"@{index}",
+                "D=A",
+                f"@{base_address}",
+                "A=D+M",
                 "D=M",
-                "@SP", "A=M", "M=D",
-                "@SP", "M=M+1"
+                getPushD()
             ])
 
         elif pushpop == "pop":
             hack_code.extend([
-                f"@{index}", "D=A",
-                f"@{base_address}", "D=D+M",
-                "@R13", "M=D",
-                "@SP", "AM=M-1", "D=M",
-                "@R13", "A=M", "M=D"
+                f"@{index}",
+                "D=A",
+                f"@{base_address}",
+                "D=D+M",
+                "@R13",
+                "M=D",
+                getPopD(),
+                "@R13",
+                "A=M",
+                "M=D"
             ])
     
 
@@ -207,7 +213,7 @@ def main():
 
     popD_output = getPopD()
     pushD_output = getPushD()
-    print(f"Pop: {popD_output}\nPush: {pushD_output}")
+    print(f"Pop: {type(popD_output)}\nPush: {type(pushD_output)}")
     print(pointerseg_test)
 
 if __name__ == "__main__":
