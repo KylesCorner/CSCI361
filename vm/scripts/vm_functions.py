@@ -62,6 +62,9 @@ Project 7 Assignment details:
         NOTE: This function will only be called if the seg is one of:
         "local", "argument", "this", "that"
 """
+
+import sys
+
 def getPopD():
     return "@SP,AM=M-1,D=M,"
 
@@ -91,7 +94,13 @@ def pointerSeg(pushpop, seg, index):
     "local", "argument", "this", "that"
 
     """
-    # Base addresses for segments in Hack assembly
+    # Validate inputs
+    if pushpop not in {"push", "pop"}:
+        raise ValueError("Invalid operation. Use 'push' or 'pop'.")
+    if not isinstance(index, int) or index < 0:
+        raise ValueError("Index must be a non-negative integer.")
+    
+    # Base addresses for pointer-based segments
     SEGLABEL = {
         "local": "LCL",
         "argument": "ARG",
@@ -99,54 +108,106 @@ def pointerSeg(pushpop, seg, index):
         "that": "THAT"
     }
     
-    if seg not in SEGLABEL:
-        raise ValueError("Invalid segment. This function only supports 'local', 'argument', 'this', and 'that'.")
+    POINTER_BASE = 3  # Base address for pointer segment
+    TEMP_BASE = 5  # Base address for temp segment
     
-    base_address = SEGLABEL[seg]
     hack_code = []
     
-    if pushpop == "push":
-        hack_code.extend([
-            f"@{index}",  # Load index
-            "D=A",        # Store index in D
-            f"@{base_address}",  # Load base address
-            "A=M",        # Get base address value
-            "A=D+A",      # Compute target address
-            "D=M",        # Get value at target address
-            "@SP",        # Load stack pointer
-            "A=M",        # Set address to stack top
-            "M=D",        # Push value to stack
-            "@SP",        # Load stack pointer
-            "M=M+1"       # Increment stack pointer
-        ])
+    if seg in SEGLABEL:
+        base_address = SEGLABEL[seg]
+        if pushpop == "push":
+            hack_code.extend([
+                f"@{index}", "D=A",
+                f"@{base_address}", "A=M", "A=D+A",
+                "D=M",
+                "@SP", "A=M", "M=D",
+                "@SP", "M=M+1"
+            ])
+
+        elif pushpop == "pop":
+            hack_code.extend([
+                f"@{index}", "D=A",
+                f"@{base_address}", "D=D+M",
+                "@R13", "M=D",
+                "@SP", "AM=M-1", "D=M",
+                "@R13", "A=M", "M=D"
+            ])
     
-    elif pushpop == "pop":
-        hack_code.extend([
-            f"@{index}",  # Load index
-            "D=A",        # Store index in D
-            f"@{base_address}",  # Load base address
-            "A=M",        # Get base address value
-            "D=D+A",      # Compute target address
-            "@R13",       # Store address in R13 (temp variable)
-            "M=D",
-            "@SP",        # Load stack pointer
-            "M=M-1",      # Decrement stack pointer
-            "A=M",        # Set address to stack top
-            "D=M",        # Get value from stack
-            "@R13",       # Retrieve target address
-            "A=M",
-            "M=D"         # Store value at target address
-        ])
+
+    elif seg == "constant":
+        if pushpop == "push":
+            hack_code.extend([
+                f"@{index}", "D=A",
+                "@SP", "A=M", "M=D",
+                "@SP", "M=M+1"
+            ])
+        else:
+            raise ValueError("Cannot pop to constant segment.")
+
+    # Need to have file name filename.index
+    elif seg == "static":
+        var_name = f"Static.{index}"
+        if pushpop == "push":
+            hack_code.extend([
+                f"@{var_name}", "D=M",
+                "@SP", "A=M", "M=D",
+                "@SP", "M=M+1"
+            ])
+        elif pushpop == "pop":
+            hack_code.extend([
+                "@SP", "M=M-1", "A=M", "D=M",
+                f"@{var_name}", "M=D"
+            ])
+    elif seg == "pointer":
+        if index not in {0, 1}:
+            raise ValueError("Pointer segment index must be 0 or 1.")
+        address = POINTER_BASE + index
+        if pushpop == "push":
+            hack_code.extend([
+                f"@{address}", "D=M",
+                "@SP", "A=M", "M=D",
+                "@SP", "M=M+1"
+            ])
+        elif pushpop == "pop":
+            hack_code.extend([
+                "@SP", "M=M-1", "A=M", "D=M",
+                f"@{address}", "M=D"
+            ])
+
+    # location R5-R12
+    elif seg == "temp":
+        if index >= 8:
+            raise ValueError("Temp segment index must be between 0 and 7.")
+        address = TEMP_BASE + index
+        if pushpop == "push":
+            hack_code.extend([
+                f"@{address}", "D=M",
+                "@SP", "A=M", "M=D",
+                "@SP", "M=M+1"
+            ])
+        elif pushpop == "pop":
+            hack_code.extend([
+                "@SP", "M=M-1", "A=M", "D=M",
+                f"@{address}", "M=D"
+            ])
+
     else:
-        raise ValueError("Invalid operation. Use 'push' or 'pop'.")
-    
+        raise ValueError("Invalid segment. Supported segments: 'local', 'argument', 'this', 'that', 'constant', 'static', 'pointer', 'temp'.")
+
     return ",".join(hack_code)
 
 def main():
+    if len(sys.argv) == 4:
+        op, seg, index = sys.argv[1:]
+        print(op,seg,index)
+        pointerseg_test = pointerSeg(op,seg,int(index))
+    else:
+        pointerseg_test = pointerSeg('push', 'temp', 1)
+
+
     popD_output = getPopD()
     pushD_output = getPushD()
     print(f"Pop: {popD_output}\nPush: {pushD_output}")
-    pointerseg_test = pointerSeg('pop', 'local', 1)
     print(pointerseg_test)
 
 if __name__ == "__main__":
