@@ -122,7 +122,7 @@ def pointerSeg(pushpop, seg, index):
                 f"@{base_address}",
                 "A=D+M",
                 "D=M",
-                getPushD()
+                getPushD(),
             ])
 
         elif pushpop == "pop":
@@ -136,7 +136,7 @@ def pointerSeg(pushpop, seg, index):
                 getPopD(),
                 "@R13",
                 "A=M",
-                "M=D"
+                "M=D",
             ])
     
 
