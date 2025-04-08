@@ -65,22 +65,40 @@ Project 7 Assignment details:
 
 import sys
 
+def getPopD():
+    return "@SP,AM=M-1,D=M"
+
+def getPushD():
+    return "@SP,A=M,M=D,@SP,M=M+1"
+
 # The following dictionaries are used to translate VM language commands to machine language.
 
 # This contains the binary operations add, sub, and, or as values. The keys are the Hack ML code to do them.
 # Assume a getPopD() has been called prior to this lookup.
-ARITH_BINARY = {}
+ARITH_BINARY = {
+    "add": getPopD() + "@SP,AM=M-1,M=M+D,",
+    "sub": getPopD() + "@SP,AM=M-1,M=M-D,",
+    "and": getPopD() + "@SP,AM=M-1,M=M&D,",
+    "or":  getPopD() + "@SP,AM=M-1,M=M|D,",
+}
 
 # As above, but now the keys are unary operations neg, not
 # Values are sequences of Hack ML code, seperated by commas.
 # In this case do not assume a getPopD() has been called prior to the lookup
-ARITH_UNARY = {}
+ARITH_UNARY = {
+    "neg": "@SP,AM=M-1,M=-M," + getPushD(),
+    "not": "@SP,AM=M-1,M=!M," + getPushD(),
+}
 
 # Now, the code for operations gt, lt, eq as values. 
 # These are assumed to be preceded by getPopD()
 # The ML code corresponds very nicely to the jump conditions in 
 # Hack assembly
-ARITH_TEST  = {}
+ARITH_TEST  = {
+    "eq": "JEQ",
+    "lt": "JLT",
+    "gt": "JGT",
+}
 
 # Base addresses for pointer-based segments
 SEGLABEL = {
@@ -101,11 +119,6 @@ LABEL_NUMBER = 0
 POINTER_BASE = 3  # Base address for pointer segment
 TEMP_BASE = 5  # Base address for temp segment
 
-def getPopD():
-    return "@SP,AM=M-1,D=M,"
-
-def getPushD():
-    return "@SP,A=M,M=D,@SP,M=M+1,"
 
 def pointerSeg(pushpop, seg, index):
     """
@@ -132,8 +145,10 @@ def pointerSeg(pushpop, seg, index):
     """
     # Validate inputs
     if pushpop not in {"push", "pop"}:
+        print(f"Bad operation: {pushpop}")
         raise ValueError("Invalid operation. Use 'push' or 'pop'.")
     if not isinstance(index, int) or index < 0:
+        print(f"Bad Index: {index}, {type(index)}")
         raise ValueError("Index must be a non-negative integer.")
     
     
@@ -149,6 +164,7 @@ def pointerSeg(pushpop, seg, index):
                 "A=D+M",
                 "D=M",
                 getPushD(),
+                "",
             ])
 
         elif pushpop == "pop":
@@ -163,6 +179,7 @@ def pointerSeg(pushpop, seg, index):
                 "@R13",
                 "A=M",
                 "M=D",
+                "",
             ])
     
 
@@ -172,44 +189,74 @@ def pointerSeg(pushpop, seg, index):
 
     return ",".join(hack_code)
 
-def fixedSeg(push,seg,index):
+def fixedSeg(pushpop,seg,index):
     """
     For pointer and temp segments
     """
+    base = POINTER_BASE if seg == "pointer" else TEMP_BASE
+    addr = base - index
+    if pushpop == "push":
+        return f"@{addr},D=M,{getPushD()},"
+    else:
+        return f"{getPopD()},@{addr},M=D,"
 
 
-def constantSeg(push,seg,index):
+def constantSeg(pushpop,seg,index):
     """
     This will do constant and static segments
     """
+    if seg == "constant":
+        return f"@{index},D=A,{getPushD()},"
+
+    elif seg == "static":
+
+        var = f"Static.{index}"
+
+        if pushpop == "push":
+            return f"@{var},D=M,{getPushD()},"
+
+        else:
+            return f"{getPopD()},@{var},M=D,"
 
 def line2Command(line):
     """ This just returns a cleaned up line, removing unneeded spaces and comments"""
+    line = line.split("//")[0].strip()
+    return line if line else None
     
           
 
 def uniqueLabel():
     """ Uses LABEL_NUMBER to generate and return a unique label"""
+    global LABEL_NUMBER
+    LABEL_NUMBER += 1
+    return f"LABEL{LABEL_NUMBER}"
+
 def ParseFile(f):
     outString = ""
     for line in f:
         command = line2Command(line)
         if command:
             args = [x.strip() for x in command.split()] # Break command into list of arguments, no return characters
-            if args[0] in ARITH_BINARY.keys():
+            
+            cmd = args[0]
+            if cmd in ARITH_BINARY.keys():
                 """
                 Code that will deal with any of the binary operations (add, sub, and, or)
                 do so by doing the things all have in common, then do what is specific
                 to each by pulling a key from the appropriate dictionary.
                 Remember, it's always about putting together strings of Hack ML code.
                 """
+                outString += f"//{cmd},"
+                outString += ARITH_BINARY[cmd] + ','
 
-            elif args[0] in ARITH_UNARY.keys():
+            elif cmd in ARITH_UNARY.keys():
                 """
                 As above, but now for the unary operators (neg, not)
                 """
+                outString += f"//{cmd},"
+                outString += ARITH_UNARY[cmd] + ','
 
-            elif args[0] in ARITH_TEST.keys():
+            elif cmd in ARITH_TEST.keys():
                 """
                 Deals with the three simple operators (lt,gt,eq), but likely the hardest
                 section because you'll have to write assembly to jump to a different part
@@ -219,6 +266,27 @@ def ParseFile(f):
                 That goes back onto the stack.
                 HINT: Review the quiz for this unit!
                 """
+                jump = ARITH_TEST[cmd]
+                label_true = uniqueLabel()
+                label_end = uniqueLabel()
+                outString += f"//{cmd},"
+                outString += ",".join([
+                    getPopD(),
+                    "@SP",
+                    "AM=M-1",
+                    "D=M-D",
+                    f"@{label_true}",
+                    f"D;{jump}",
+                    f"@{label_end}",
+                    "0;JMP",
+                    f"({label_true})",
+                    "@SP",
+                    "A=M",
+                    "M=-1",
+                    "@SP",
+                    "M=M+1",
+                    f"({label_end}),",
+                ])
 
             elif args[1] in SEGMENTS.keys():
                 """
@@ -226,29 +294,44 @@ def ParseFile(f):
                 You've written the functions, the code in here selects the right 
                 function by picking a function handle from a dictionary. 
                 """
+                pushpop, seg, index = args[0:3]
+                outString += f"// {pushpop} {seg} {index},"
+                outString += SEGMENTS[seg](pushpop,seg,int(index)) + ','
 
             else:
                 print("Unknown command!")
-                print(args)
+                print(cmd)
                 sys.exit(-1)
 
     l = uniqueLabel()
     outString += '(%s)'%(l)+',@%s,0;JMP'%l # Final endless loop
-    return outString.replace(" ","").replace(',','\n')
+    return outString.replace(',','\n')
+
+# Mapping segment names to handling functions
+SEGMENTS = {
+    "local": pointerSeg,
+    "argument": pointerSeg,
+    "this": pointerSeg,
+    "that": pointerSeg,
+    "pointer": fixedSeg,
+    "temp": fixedSeg,
+    "constant": constantSeg,
+    "static": constantSeg,
+}
 
 def main():
-    if len(sys.argv) == 4:
-        op, seg, index = sys.argv[1:]
-        print(op,seg,index)
-        pointerseg_test = pointerSeg(op,seg,int(index))
+    if len(sys.argv) == 2:
+        with open(sys.argv[1], 'r') as f:
+            hack = ParseFile(f)
+
+        hack += "\n"
+        write_file = open("prog.asm", "w")
+        write_file.write(hack)
+        write_file.close()
     else:
-        pointerseg_test = pointerSeg('push', 'local', 1)
+        print("Usage: python3 vm_translator.py filename.vm")
 
 
-    popD_output = getPopD()
-    pushD_output = getPushD()
-    print(f"Pop: {type(popD_output)}\nPush: {type(pushD_output)}")
-    print(pointerseg_test)
 
 if __name__ == "__main__":
     main()
