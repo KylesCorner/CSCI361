@@ -151,7 +151,7 @@ def pointerSeg(pushpop, seg, index):
             getPushD(),
         })
 
-    elif pushpop == "pop":
+    else:
         output_str = ",".join([
             f"@{index}",
             "D=A",
@@ -181,7 +181,7 @@ def fixedSeg(pushpop,seg,index):
             "D=M",
             getPushD(),
         })
-    elif pushpop == "pop":
+    else:
         output_str = ",".join([
             getPopD(),
             addr,
@@ -205,7 +205,7 @@ def constantSeg(pushpop,seg,index):
             getPushD(),
         ])
 
-    elif seg == "static":
+    else:
 
         var = f"@Static.{index}"
 
@@ -331,8 +331,9 @@ def ParseFile(f):
                 outString += f"// {pushpop} {seg} {index},"
                 outString += SEGMENTS[seg](pushpop,seg,int(index))
 
+            # invalid segment
             else:
-                err += f"{args[1]} not in {SEGMENTS.keys()}"
+                err += f"Invalid segment, {args[1]} not in {SEGMENTS.keys()}"
                 raise ValueError(err)
 
     l = uniqueLabel("loop", label_number)
