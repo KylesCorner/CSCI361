@@ -76,18 +76,18 @@ def getPushD():
 # This contains the binary operations add, sub, and, or as values. The keys are the Hack ML code to do them.
 # Assume a getPopD() has been called prior to this lookup.
 ARITH_BINARY = {
-    "add": getPopD() + "@SP,AM=M-1,M=M+D,",
-    "sub": getPopD() + "@SP,AM=M-1,M=M-D,",
-    "and": getPopD() + "@SP,AM=M-1,M=M&D,",
-    "or":  getPopD() + "@SP,AM=M-1,M=M|D,",
+    "add": getPopD() + ",@SP,AM=M-1,M=M+D,,",
+    "sub": getPopD() + ",@SP,AM=M-1,M=M-D,,",
+    "and": getPopD() + ",@SP,AM=M-1,M=M&D,,",
+    "or":  getPopD() + ",@SP,AM=M-1,M=M|D,,",
 }
 
 # As above, but now the keys are unary operations neg, not
 # Values are sequences of Hack ML code, seperated by commas.
 # In this case do not assume a getPopD() has been called prior to the lookup
 ARITH_UNARY = {
-    "neg": "@SP,AM=M-1,M=-M," + getPushD(),
-    "not": "@SP,AM=M-1,M=!M," + getPushD(),
+    "neg": "@SP,AM=M-1,M=-M," + getPushD() + ",,",
+    "not": "@SP,AM=M-1,M=!M," + getPushD() + ",,",
 }
 
 # Now, the code for operations gt, lt, eq as values. 
@@ -108,9 +108,6 @@ SEGLABEL = {
     "that": "THAT"
 }
 
-# Here are the segments
-SEGMENTS = {}
-            
 
 # This will be used to generate unique labels when they are needed.
 LABEL_NUMBER = 0
@@ -147,28 +144,28 @@ def pointerSeg(pushpop, seg, index):
     if pushpop not in {"push", "pop"}:
         print(f"Bad operation: {pushpop}")
         raise ValueError("Invalid operation. Use 'push' or 'pop'.")
+
     if not isinstance(index, int) or index < 0:
         print(f"Bad Index: {index}, {type(index)}")
         raise ValueError("Index must be a non-negative integer.")
     
     
-    hack_code = []
+    output_str = ""
     
     if seg in SEGLABEL:
         base_address = SEGLABEL[seg]
         if pushpop == "push":
-            hack_code.extend([
+            output_str = ",".join({
                 f"@{index}",
                 "D=A",
                 f"@{base_address}",
                 "A=D+M",
                 "D=M",
                 getPushD(),
-                "",
-            ])
+            })
 
         elif pushpop == "pop":
-            hack_code.extend([
+            output_str = ",".join([
                 f"@{index}",
                 "D=A",
                 f"@{base_address}",
@@ -179,44 +176,75 @@ def pointerSeg(pushpop, seg, index):
                 "@R13",
                 "A=M",
                 "M=D",
-                "",
             ])
-    
-
-
     else:
         raise ValueError("Invalid segment. Supported segments: 'local', 'argument', 'this', 'that'")
 
-    return ",".join(hack_code)
+    return output_str + ",,"
 
 def fixedSeg(pushpop,seg,index):
     """
     For pointer and temp segments
     """
+
+    if pushpop not in ["push", "pop"]:
+        print(f"Invalid operation: {pushpop}. Type: {type(pushpop)}")
+        raise ValueError("Invalid push/pop operation")
+
     base = POINTER_BASE if seg == "pointer" else TEMP_BASE
-    addr = base - index
+    addr = f"@{base - index}"
+    output_str = ""
+
+
     if pushpop == "push":
-        return f"@{addr},D=M,{getPushD()},"
+        output_str = ",".join({
+            addr,
+            "D=M",
+            getPushD(),
+        })
     else:
-        return f"{getPopD()},@{addr},M=D,"
+        output_str = ",".join([
+            getPopD(),
+            addr,
+            "M=D",
+        ])
+
+    
+    return output_str + ",,"
 
 
 def constantSeg(pushpop,seg,index):
     """
     This will do constant and static segments
     """
+    output_str = ""
+
     if seg == "constant":
-        return f"@{index},D=A,{getPushD()},"
+        output_str = ",".join([
+            f"@{index}",
+            "D=A",
+            getPushD(),
+        ])
 
     elif seg == "static":
 
-        var = f"Static.{index}"
+        var = f"@Static.{index}"
 
         if pushpop == "push":
-            return f"@{var},D=M,{getPushD()},"
+            output_str = ",".join([
+                var,
+                "D=M",
+                getPushD(),
+            ])
 
         else:
-            return f"{getPopD()},@{var},M=D,"
+            output_str = ",".join([
+                getPopD(),
+                var,
+                "M=D",
+            ])
+
+    return output_str + ",,"
 
 def line2Command(line):
     """ This just returns a cleaned up line, removing unneeded spaces and comments"""
@@ -247,14 +275,14 @@ def ParseFile(f):
                 Remember, it's always about putting together strings of Hack ML code.
                 """
                 outString += f"//{cmd},"
-                outString += ARITH_BINARY[cmd] + ','
+                outString += ARITH_BINARY[cmd]
 
             elif cmd in ARITH_UNARY.keys():
                 """
                 As above, but now for the unary operators (neg, not)
                 """
                 outString += f"//{cmd},"
-                outString += ARITH_UNARY[cmd] + ','
+                outString += ARITH_UNARY[cmd]
 
             elif cmd in ARITH_TEST.keys():
                 """
@@ -269,7 +297,7 @@ def ParseFile(f):
                 jump = ARITH_TEST[cmd]
                 label_true = uniqueLabel()
                 label_end = uniqueLabel()
-                outString += f"//{cmd},"
+                outString += f"// {cmd},"
                 outString += ",".join([
                     getPopD(),
                     "@SP",
@@ -285,7 +313,8 @@ def ParseFile(f):
                     "M=-1",
                     "@SP",
                     "M=M+1",
-                    f"({label_end}),",
+                    f"({label_end})",
+                    ","
                 ])
 
             elif args[1] in SEGMENTS.keys():
@@ -296,7 +325,7 @@ def ParseFile(f):
                 """
                 pushpop, seg, index = args[0:3]
                 outString += f"// {pushpop} {seg} {index},"
-                outString += SEGMENTS[seg](pushpop,seg,int(index)) + ','
+                outString += SEGMENTS[seg](pushpop,seg,int(index))
 
             else:
                 print("Unknown command!")
@@ -304,6 +333,7 @@ def ParseFile(f):
                 sys.exit(-1)
 
     l = uniqueLabel()
+    outString += "// Final endless loop,"
     outString += '(%s)'%(l)+',@%s,0;JMP'%l # Final endless loop
     return outString.replace(',','\n')
 
