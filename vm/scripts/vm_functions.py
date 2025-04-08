@@ -146,9 +146,9 @@ def pointerSeg(pushpop, seg, index):
             f"@{index}",
             "D=A",
             f"@{base_address}",
-            "A=D+M",
+            "A=M+D",
             "D=M",
-            getPushD(),
+            getPushD()
         })
 
     else:
@@ -172,7 +172,7 @@ def fixedSeg(pushpop,seg,index):
     For pointer and temp segments
     """
     base = POINTER_BASE if seg == "pointer" else TEMP_BASE
-    addr = f"@{base - index}"
+    addr = f"@{base + index}"
     output_str = ""
 
     if pushpop == "push":
@@ -220,7 +220,7 @@ def constantSeg(pushpop,seg,index):
             output_str = ",".join([
                 getPopD(),
                 var,
-                "M=D",
+                "M=D"
             ])
 
     return output_str + ",,"
