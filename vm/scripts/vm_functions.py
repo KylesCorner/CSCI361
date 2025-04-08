@@ -60,9 +60,7 @@ SEGLABEL = {
     "that": "THAT"
 }
 
-
-
-
+FILENAME = "" # Name of .vm file
 POINTER_BASE = 3  # Base address for pointer segment
 TEMP_BASE = 5  # Base address for temp segment
 
@@ -161,8 +159,7 @@ def constantSeg(pushpop,seg,index):
 
     else:
 
-        filename = Path(sys.argv[1]).stem
-        var = f"@{filename}.{index}"
+        var = f"@{FILENAME}.{index}"
 
         if pushpop == "push":
             output_str = ",".join([
@@ -311,8 +308,11 @@ SEGMENTS = {
 }
 
 def main():
+    global FILENAME
     if len(sys.argv) == 2:
         with open(sys.argv[1], 'r') as f:
+            FILENAME = Path(sys.argv[1]).stem
+
             hack = ParseFile(f)
 
         hack += "\n"
