@@ -132,9 +132,9 @@ def load_file():
         with open(file_path, 'r') as file:
             for line in file:
                 # Strip whitespace and ignore empty lines and comments
-                # FIX: support inline comments with line.split('//')[0].strip()
-                if line.strip() != '' and '//' not in line:
-                    lines.append(line.strip())
+                fixed_line = line.split('//')[0].strip()
+                if fixed_line != '':
+                    lines.append(fixed_line)
 
     except FileNotFoundError:
         print(f"Error file not found: {file_path}")
@@ -384,7 +384,6 @@ def fill_symbol_table(file):
         fixed_line = line.replace("(", "").replace(")", "")
 
         # Add to symbol table if not already
-    \includesvg{graphviz.svg}
         if fixed_line not in symbolTable:
             indexToDelete.append((index, fixed_line))
 
