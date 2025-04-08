@@ -5,65 +5,16 @@ vm_functions.py
 
 Virtual machine functions for the nand to tetris project.
 
-Project 6 Assignment details:
-
-    Write functions that take no arguments and return strings of Hack machine language to achieve a
-    pop of the stack to the D register and a push of the D register onto the stack. Assume a symbol
-    "SP" which is the memory address of the stack pointer exists. Call these functions 'getPushD()'
-    and 'getPopD()' respectively. Don't forget to keep the position of the stack pointer up-to-date
-    after the push or pop is done.
-
-    Instead of placing new line characters in your strings, just use commas (,) to separate the
-    lines.
-
-Project 7 Assignment details:
-
-    To accomplish our objectives, we will work with three different types of segments for VM
-    language constructs like:
-
-    push SEGMENT INDEX or,
-
-    pop SEGMENT INDEX if SEGMENT is 'local', 'argument', 'this', or 'that':
-
-    those are pointers, meaning the RAM address associated with them in the symbol table contains a
-    RAM address where the SEGMENT begins. INDEX specifies where to go in the SEGMENT.
-
-    if SEGMENT is 'constant' or 'static':
-
-    Then something special occurs, in this case it is more akin to direct manipulation of the value
-    in INDEX onto or off of the stack.
-
-    if SEGMENT is 'pointer' or 'temp':
-
-    Here, the values in the memory address specified by the segment are defined, 3 and 5
-    respectively and not indirectly specified pointers.
-
-    So, for each of the above there is a different function. For our next class, do the first set of
-    segments for local, argument, this, and that. The function follows. Implement it.
-
-    def pointerSeg(pushpop,seg,index):
-        This function returns Hack ML code to push a memory location to 
-        to the stack, or pop the stack to a memory location. 
-
-        INPUTS:
-            pushpop = a text string 'pop' means pop to memory location, 'push' 
-                      is push memory location onto stack
-            seg     = the name of the segment that will be be the base address
-                      in the form of a text string
-            index   = an integer that specifies the offset from the base 
-                      address specified by seg
-
-        RETURN: 
-            The memory address is speficied by segment's pointer (SEGLABEL[seg]) + index (index))
-            if pushpop is 'push', push the address contents to the stack
-            if pushpop is 'pop' then pop the stack to the memory address.
-            The string returned accomplishes this. ML commands are seperated by commas (,).
-
-        NOTE: This function will only be called if the seg is one of:
-        "local", "argument", "this", "that"
+Files Tested:
+    SimpleAdd Passed!
+    BasicTest Passed!
+    StackTest Passed!
+    PointerTest Passed!
+    StaticTest Passed!
 """
 
 import sys
+from pathlib import Path
 
 def getPopD():
     return "@SP,AM=M-1,D=M"
@@ -76,18 +27,19 @@ def getPushD():
 # This contains the binary operations add, sub, and, or as values. The keys are the Hack ML code to do them.
 # Assume a getPopD() has been called prior to this lookup.
 ARITH_BINARY = {
-    "add": getPopD() + ",@SP,AM=M-1,M=M+D,,",
-    "sub": getPopD() + ",@SP,AM=M-1,M=M-D,,",
-    "and": getPopD() + ",@SP,AM=M-1,M=M&D,,",
-    "or":  getPopD() + ",@SP,AM=M-1,M=M|D,,",
+    "add": getPopD() + ",A=A-1,M=D+M,,",
+    "sub": getPopD() + ",A=A-1,M=M-D,,",
+    "and": getPopD() + ",A=A-1,M=D&M,,",
+    "or":  getPopD() + ",A=A-1,M=D|M,,",
 }
 
 # As above, but now the keys are unary operations neg, not
 # Values are sequences of Hack ML code, seperated by commas.
 # In this case do not assume a getPopD() has been called prior to the lookup
 ARITH_UNARY = {
-    "neg": "@SP,AM=M-1,M=-M," + getPushD() + ",,",
-    "not": "@SP,AM=M-1,M=!M," + getPushD() + ",,",
+    "neg": "@SP,A=M-1,M=-M,,",
+    "not": "@SP,A=M-1,M=!M,,",
+
 }
 
 # Now, the code for operations gt, lt, eq as values. 
@@ -142,14 +94,15 @@ def pointerSeg(pushpop, seg, index):
     
     base_address = SEGLABEL[seg]
     if pushpop == "push":
-        output_str = ",".join({
+        output_str = ",".join([
             f"@{index}",
             "D=A",
             f"@{base_address}",
-            "A=M+D",
+            "A=M",
+            "A=D+A",
             "D=M",
             getPushD()
-        })
+        ])
 
     else:
         output_str = ",".join([
@@ -176,17 +129,18 @@ def fixedSeg(pushpop,seg,index):
     output_str = ""
 
     if pushpop == "push":
-        output_str = ",".join({
+        output_str = ",".join([
             addr,
             "D=M",
             getPushD(),
-        })
+        ])
     else:
         output_str = ",".join([
             getPopD(),
             addr,
             "M=D",
         ])
+
 
     
     return output_str + ",,"
@@ -207,7 +161,8 @@ def constantSeg(pushpop,seg,index):
 
     else:
 
-        var = f"@Static.{index}"
+        filename = Path(sys.argv[1]).stem
+        var = f"@{filename}.{index}"
 
         if pushpop == "push":
             output_str = ",".join([
@@ -238,7 +193,7 @@ def uniqueLabel(id, label_number):
     return label
 
 def ParseFile(f):
-    outString = ""
+    outString = f"// {sys.argv[1]},"
     label_number = 0
     for line_number, line in enumerate(f):
         err = f"File {sys.argv[1]}: Line {line_number+1} -> "
@@ -254,14 +209,14 @@ def ParseFile(f):
                 to each by pulling a key from the appropriate dictionary.
                 Remember, it's always about putting together strings of Hack ML code.
                 """
-                outString += f"//{cmd},"
+                outString += f"// {cmd},"
                 outString += ARITH_BINARY[cmd]
 
             elif cmd in ARITH_UNARY.keys():
                 """
                 As above, but now for the unary operators (neg, not)
                 """
-                outString += f"//{cmd},"
+                outString += f"// {cmd},"
                 outString += ARITH_UNARY[cmd]
 
             elif cmd in ARITH_TEST.keys():
@@ -281,23 +236,23 @@ def ParseFile(f):
                 outString += f"// {cmd},"
                 outString += ",".join([
                     getPopD(),
-                    "@SP",
+                    "@SP",        # Pop x
                     "AM=M-1",
-                    "D=M-D",
+                    "D=M-D",      # D = x - y
                     f"@{label_true}",
-                    f"D;{jump}",
+                    f"D;{jump}",  # Jump to true label if condition met
                     "@SP",
                     "A=M",
-                    "A=0",
+                    "M=0",        # false = 0
                     f"@{label_false}",
                     "0;JMP",
                     f"({label_true})",
                     "@SP",
                     "A=M",
-                    "M=-1",
+                    "M=-1",       # true = -1 (0xFFFF)
                     f"({label_false})",
                     "@SP",
-                    "M=M+1",
+                    "M=M+1",      # push result, SP++
                     ","
                 ])
 
@@ -322,10 +277,12 @@ def ParseFile(f):
                 # invalid segment
                 if seg not in SEGMENTS.keys():
                     err += f"Invalid segment, {seg} not in {SEGMENTS.keys()}"
+                    raise ValueError(err)
 
                 # invalid index
                 if (int(index) < 0 ):
                     err += f"Invalid Index, {index} must be a positive integer"
+                    raise ValueError(err)
 
 
                 outString += f"// {pushpop} {seg} {index},"
