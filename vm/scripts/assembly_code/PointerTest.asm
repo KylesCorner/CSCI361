@@ -1,142 +1,142 @@
 // vm_code/PointerTest.vm
 // push constant 3030
-@3030
-D=A
-@SP
+@3030 // load constant value
+D=A // Put 3030 into D
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // pop pointer 0
-@SP
+@SP // Pop to D
 AM=M-1
 D=M
-@3
-M=D
+@3 // load pointer address
+M=D // *address = D
 
 // push constant 3040
-@3040
-D=A
-@SP
+@3040 // load constant value
+D=A // Put 3040 into D
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // pop pointer 1
-@SP
+@SP // Pop to D
 AM=M-1
 D=M
-@4
-M=D
+@4 // load pointer address
+M=D // *address = D
 
 // push constant 32
-@32
-D=A
-@SP
+@32 // load constant value
+D=A // Put 32 into D
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // pop this 2
-@2
-D=A
-@THIS
-D=D+M
-@R13
-M=D
-@SP
+@2 // load the index
+D=A // D = index
+@THIS // load base address of the segment
+D=D+M // D = target address
+@R13 // temp storage
+M=D // R13 = address to store popped value
+@SP // Pop to D
 AM=M-1
 D=M
-@R13
-A=M
-M=D
+@R13 // load temp storage
+A=M // A = target address
+M=D // *segment[index] = popped value
 
 // push constant 46
-@46
-D=A
-@SP
+@46 // load constant value
+D=A // Put 46 into D
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // pop that 6
-@6
-D=A
-@THAT
-D=D+M
-@R13
-M=D
-@SP
+@6 // load the index
+D=A // D = index
+@THAT // load base address of the segment
+D=D+M // D = target address
+@R13 // temp storage
+M=D // R13 = address to store popped value
+@SP // Pop to D
 AM=M-1
 D=M
-@R13
-A=M
-M=D
+@R13 // load temp storage
+A=M // A = target address
+M=D // *segment[index] = popped value
 
 // push pointer 0
-@3
-D=M
-@SP
+@3 // load pointer address
+D=M // D = *address
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // push pointer 1
-@4
-D=M
-@SP
+@4 // load pointer address
+D=M // D = *address
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // add
-@SP
+@SP // Pop to D
 AM=M-1
 D=M
 A=A-1
 M=D+M
 
 // push this 2
-@2
-D=A
-@THIS
-A=M
-A=D+A
-D=M
-@SP
+@2 // load the index
+D=A // D = index
+@THIS // load the base address of the segment
+A=M // get base pointer
+A=D+A // final target address
+D=M // D = value at target address
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // sub
-@SP
+@SP // Pop to D
 AM=M-1
 D=M
 A=A-1
 M=M-D
 
 // push that 6
-@6
-D=A
-@THAT
-A=M
-A=D+A
-D=M
-@SP
+@6 // load the index
+D=A // D = index
+@THAT // load the base address of the segment
+A=M // get base pointer
+A=D+A // final target address
+D=M // D = value at target address
+@SP // Push D to stack
 A=M
 M=D
 @SP
 M=M+1
 
 // add
-@SP
+@SP // Pop to D
 AM=M-1
 D=M
 A=A-1

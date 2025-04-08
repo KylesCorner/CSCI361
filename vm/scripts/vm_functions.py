@@ -16,11 +16,11 @@ Files Tested:
 import sys
 from pathlib import Path
 
-def getPopD():
-    return "@SP,AM=M-1,D=M"
+def getPopD(comment = "Pop to D"):
+    return f"@SP // {comment},AM=M-1,D=M"
 
-def getPushD():
-    return "@SP,A=M,M=D,@SP,M=M+1"
+def getPushD(comment = "Push D to stack"):
+    return f"@SP // {comment},A=M,M=D,@SP,M=M+1"
 
 # The following dictionaries are used to translate VM language commands to machine language.
 
@@ -93,27 +93,27 @@ def pointerSeg(pushpop, seg, index):
     base_address = SEGLABEL[seg]
     if pushpop == "push":
         output_str = ",".join([
-            f"@{index}",
-            "D=A",
-            f"@{base_address}",
-            "A=M",
-            "A=D+A",
-            "D=M",
+            f"@{index} // load the index",
+            f"D=A // D = index",
+            f"@{base_address} // load the base address of the segment",
+            "A=M // get base pointer",
+            f"A=D+A // final target address",
+            "D=M // D = value at target address",
             getPushD()
         ])
 
     else:
         output_str = ",".join([
-            f"@{index}",
-            "D=A",
-            f"@{base_address}",
-            "D=D+M",
-            "@R13",
-            "M=D",
+            f"@{index} // load the index",
+            "D=A // D = index",
+            f"@{base_address} // load base address of the segment",
+            "D=D+M // D = target address",
+            "@R13 // temp storage",
+            "M=D // R13 = address to store popped value",
             getPopD(),
-            "@R13",
-            "A=M",
-            "M=D",
+            "@R13 // load temp storage",
+            "A=M // A = target address",
+            "M=D // *segment[index] = popped value",
         ])
 
     return output_str + ",,"
@@ -128,15 +128,15 @@ def fixedSeg(pushpop,seg,index):
 
     if pushpop == "push":
         output_str = ",".join([
-            addr,
-            "D=M",
+            addr + " // load pointer address",
+            "D=M // D = *address",
             getPushD(),
         ])
     else:
         output_str = ",".join([
             getPopD(),
-            addr,
-            "M=D",
+            addr + " // load pointer address",
+            "M=D // *address = D",
         ])
 
 
@@ -152,8 +152,8 @@ def constantSeg(pushpop,seg,index):
 
     if seg == "constant":
         output_str = ",".join([
-            f"@{index}",
-            "D=A",
+            f"@{index} // load constant value",
+            f"D=A // Put {index} into D",
             getPushD(),
         ])
 
@@ -163,16 +163,16 @@ def constantSeg(pushpop,seg,index):
 
         if pushpop == "push":
             output_str = ",".join([
-                var,
-                "D=M",
+                var + " // load variable",
+                "D=M // D = *variable",
                 getPushD(),
             ])
 
         else:
             output_str = ",".join([
                 getPopD(),
-                var,
-                "M=D"
+                var + " // load variable location",
+                "M=D // *variable = D"
             ])
 
     return output_str + ",,"
@@ -232,24 +232,24 @@ def ParseFile(f):
                 label_number += 1
                 outString += f"// {cmd},"
                 outString += ",".join([
-                    getPopD(),
-                    "@SP",        # Pop x
+                    getPopD("Pop Y"),
+                    "@SP // Pop x",        # Pop x
                     "AM=M-1",
-                    "D=M-D",      # D = x - y
+                    "D=M-D // D = x - y",      # D = x - y
                     f"@{label_true}",
-                    f"D;{jump}",  # Jump to true label if condition met
+                    f"D;{jump} // Jump to {label_true} if condition met",  # Jump to true label if condition met
                     "@SP",
                     "A=M",
-                    "M=0",        # false = 0
+                    "M=0 // false = 0",        # false = 0
                     f"@{label_false}",
                     "0;JMP",
                     f"({label_true})",
                     "@SP",
                     "A=M",
-                    "M=-1",       # true = -1 (0xFFFF)
+                    "M=-1 // true = -1",       # true = -1 (0xFFFF)
                     f"({label_false})",
                     "@SP",
-                    "M=M+1",      # push result, SP++
+                    "M=M+1 // push result, SP++",      # push result, SP++
                     ","
                 ])
 
