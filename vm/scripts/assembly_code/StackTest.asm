@@ -3,24 +3,24 @@
 @17 // load constant value
 D=A // Put 17 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 17
 @17 // load constant value
 D=A // Put 17 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // eq
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -44,24 +44,24 @@ M=M+1 // push result
 @17 // load constant value
 D=A // Put 17 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 16
 @16 // load constant value
 D=A // Put 16 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // eq
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -85,24 +85,24 @@ M=M+1 // push result
 @16 // load constant value
 D=A // Put 16 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 17
 @17 // load constant value
 D=A // Put 17 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // eq
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -126,24 +126,24 @@ M=M+1 // push result
 @892 // load constant value
 D=A // Put 892 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 891
 @891 // load constant value
 D=A // Put 891 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // lt
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -167,24 +167,24 @@ M=M+1 // push result
 @891 // load constant value
 D=A // Put 891 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 892
 @892 // load constant value
 D=A // Put 892 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // lt
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -208,24 +208,24 @@ M=M+1 // push result
 @891 // load constant value
 D=A // Put 891 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 891
 @891 // load constant value
 D=A // Put 891 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // lt
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -249,24 +249,24 @@ M=M+1 // push result
 @32767 // load constant value
 D=A // Put 32767 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 32766
 @32766 // load constant value
 D=A // Put 32766 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // gt
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -290,24 +290,24 @@ M=M+1 // push result
 @32766 // load constant value
 D=A // Put 32766 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 32767
 @32767 // load constant value
 D=A // Put 32767 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // gt
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -331,24 +331,24 @@ M=M+1 // push result
 @32766 // load constant value
 D=A // Put 32766 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 32766
 @32766 // load constant value
 D=A // Put 32766 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // gt
 @SP // Pop Y
-AM=M-1
-D=M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
 @SP // Pop x
 AM=M-1
 D=M-D // D = x - y
@@ -372,84 +372,84 @@ M=M+1 // push result
 @57 // load constant value
 D=A // Put 57 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 31
 @31 // load constant value
 D=A // Put 31 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // push constant 53
 @53 // load constant value
 D=A // Put 53 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // add
-@SP // Pop to D
-AM=M-1
-D=M
-A=A-1
-M=D+M
+@SP // Pop Y
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
+A=A-1 // address X
+M=D+M // X = Y + X
 
 // push constant 112
 @112 // load constant value
 D=A // Put 112 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // sub
-@SP // Pop to D
-AM=M-1
-D=M
-A=A-1
-M=M-D
+@SP // Pop Y
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
+A=A-1 // address X
+M=M-D // X = X - Y
 
 // neg
-@SP
-A=M-1
-M=-M
+@SP // address stack pointer
+A=M-1 // address X
+M=-M // X = -X
 
 // and
-@SP // Pop to D
-AM=M-1
-D=M
-A=A-1
-M=D&M
+@SP // Pop Y
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
+A=A-1 // address X
+M=D&M // X = Y and X
 
 // push constant 82
 @82 // load constant value
 D=A // Put 82 into D
 @SP // Push D to stack
-A=M
-M=D
+A=M // address stack
+M=D // add D to stack
 @SP
-M=M+1
+M=M+1 // increment stack pointer
 
 // or
 @SP // Pop to D
-AM=M-1
-D=M
-A=A-1
-M=D|M
+AM=M-1 // Decrement stack pointer
+D=M // D = RAM[stack pointer]
+A=A-1 // address X
+M=D|M // X = Y or X
 
 // not
-@SP
-A=M-1
-M=!M
+@SP // address stack pointer
+A=M-1 // address X
+M=!M // X = not X
 
 // Final endless loop
 (LOOP9)

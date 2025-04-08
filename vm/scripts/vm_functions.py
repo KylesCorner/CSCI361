@@ -17,28 +17,28 @@ import sys
 from pathlib import Path
 
 def getPopD(comment = "Pop to D"):
-    return f"@SP // {comment},AM=M-1,D=M"
+    return f"@SP // {comment},AM=M-1 // Decrement stack pointer,D=M // D = RAM[stack pointer]"
 
 def getPushD(comment = "Push D to stack"):
-    return f"@SP // {comment},A=M,M=D,@SP,M=M+1"
+    return f"@SP // {comment},A=M // address stack,M=D // add D to stack,@SP,M=M+1 // increment stack pointer"
 
 # The following dictionaries are used to translate VM language commands to machine language.
 
 # This contains the binary operations add, sub, and, or as values. The keys are the Hack ML code to do them.
 # Assume a getPopD() has been called prior to this lookup.
 ARITH_BINARY = {
-    "add": getPopD() + ",A=A-1,M=D+M,,",
-    "sub": getPopD() + ",A=A-1,M=M-D,,",
-    "and": getPopD() + ",A=A-1,M=D&M,,",
-    "or":  getPopD() + ",A=A-1,M=D|M,,",
+    "add": getPopD("Pop Y") + ",A=A-1 // address X,M=D+M // X = Y + X,,",
+    "sub": getPopD("Pop Y") + ",A=A-1 // address X,M=M-D // X = X - Y,,",
+    "and": getPopD("Pop Y") + ",A=A-1 // address X,M=D&M // X = Y and X,,",
+    "or":  getPopD() + ",A=A-1 // address X,M=D|M // X = Y or X,,",
 }
 
 # As above, but now the keys are unary operations neg, not
 # Values are sequences of Hack ML code, seperated by commas.
 # In this case do not assume a getPopD() has been called prior to the lookup
 ARITH_UNARY = {
-    "neg": "@SP,A=M-1,M=-M,,",
-    "not": "@SP,A=M-1,M=!M,,",
+    "neg": "@SP // address stack pointer,A=M-1 // address X,M=-M // X = -X,,",
+    "not": "@SP // address stack pointer,A=M-1 // address X,M=!M // X = not X,,",
 
 }
 
