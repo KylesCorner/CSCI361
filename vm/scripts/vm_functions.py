@@ -140,45 +140,32 @@ def pointerSeg(pushpop, seg, index):
     "local", "argument", "this", "that"
 
     """
-    # Validate inputs
-    if pushpop not in {"push", "pop"}:
-        print(f"Bad operation: {pushpop}")
-        raise ValueError("Invalid operation. Use 'push' or 'pop'.")
-
-    if not isinstance(index, int) or index < 0:
-        print(f"Bad Index: {index}, {type(index)}")
-        raise ValueError("Index must be a non-negative integer.")
-    
-    
     output_str = ""
     
-    if seg in SEGLABEL:
-        base_address = SEGLABEL[seg]
-        if pushpop == "push":
-            output_str = ",".join({
-                f"@{index}",
-                "D=A",
-                f"@{base_address}",
-                "A=D+M",
-                "D=M",
-                getPushD(),
-            })
+    base_address = SEGLABEL[seg]
+    if pushpop == "push":
+        output_str = ",".join({
+            f"@{index}",
+            "D=A",
+            f"@{base_address}",
+            "A=D+M",
+            "D=M",
+            getPushD(),
+        })
 
-        elif pushpop == "pop":
-            output_str = ",".join([
-                f"@{index}",
-                "D=A",
-                f"@{base_address}",
-                "D=D+M",
-                "@R13",
-                "M=D",
-                getPopD(),
-                "@R13",
-                "A=M",
-                "M=D",
-            ])
-    else:
-        raise ValueError("Invalid segment. Supported segments: 'local', 'argument', 'this', 'that'")
+    elif pushpop == "pop":
+        output_str = ",".join([
+            f"@{index}",
+            "D=A",
+            f"@{base_address}",
+            "D=D+M",
+            "@R13",
+            "M=D",
+            getPopD(),
+            "@R13",
+            "A=M",
+            "M=D",
+        ])
 
     return output_str + ",,"
 
@@ -186,15 +173,9 @@ def fixedSeg(pushpop,seg,index):
     """
     For pointer and temp segments
     """
-
-    if pushpop not in ["push", "pop"]:
-        print(f"Invalid operation: {pushpop}. Type: {type(pushpop)}")
-        raise ValueError("Invalid push/pop operation")
-
     base = POINTER_BASE if seg == "pointer" else TEMP_BASE
     addr = f"@{base - index}"
     output_str = ""
-
 
     if pushpop == "push":
         output_str = ",".join({
@@ -202,7 +183,7 @@ def fixedSeg(pushpop,seg,index):
             "D=M",
             getPushD(),
         })
-    else:
+    elif pushpop == "pop":
         output_str = ",".join([
             getPopD(),
             addr,
@@ -260,8 +241,10 @@ def uniqueLabel():
     return f"LABEL{LABEL_NUMBER}"
 
 def ParseFile(f):
+    global LINE_NUMBER
     outString = ""
-    for line in f:
+    for line_number, line in enumerate(f):
+        err = f"File {sys.argv[1]}: Line {line_number+1} -> "
         command = line2Command(line)
         if command:
             args = [x.strip() for x in command.split()] # Break command into list of arguments, no return characters
@@ -317,6 +300,11 @@ def ParseFile(f):
                     ","
                 ])
 
+            # invalid arithmetic operation
+            elif len(args) < 3:
+                err += f"Invalid operation; {', '.join(args)}."
+                raise ValueError(err)
+
             elif args[1] in SEGMENTS.keys():
                 """
                 Here we deal with code that's like push/pop segment index.
@@ -324,13 +312,27 @@ def ParseFile(f):
                 function by picking a function handle from a dictionary. 
                 """
                 pushpop, seg, index = args[0:3]
+
+                # invalid push/pop
+                if pushpop not in ["push", "pop"]:
+                    err += f"Invalid operation, {pushpop}. Use 'push' or 'pop'"
+                    raise ValueError(err)
+
+                # invalid segment
+                if seg not in SEGMENTS.keys():
+                    err += f"Invalid segment, {seg} not in {SEGMENTS.keys()}"
+
+                # invalid index
+                if (int(index) < 0 ):
+                    err += f"Invalid Index, {index} must be a positive integer"
+
+
                 outString += f"// {pushpop} {seg} {index},"
                 outString += SEGMENTS[seg](pushpop,seg,int(index))
 
             else:
-                print("Unknown command!")
-                print(cmd)
-                sys.exit(-1)
+                err += f"{args[1]} not in {SEGMENTS.keys()}"
+                raise ValueError(err)
 
     l = uniqueLabel()
     outString += "// Final endless loop,"
