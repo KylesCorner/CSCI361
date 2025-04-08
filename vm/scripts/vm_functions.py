@@ -275,8 +275,8 @@ def ParseFile(f):
                 HINT: Review the quiz for this unit!
                 """
                 jump = ARITH_TEST[cmd]
-                label_true = uniqueLabel("start",label_number)
-                label_end = uniqueLabel("end",label_number)
+                label_true = uniqueLabel("true",label_number)
+                label_false = uniqueLabel("false",label_number)
                 label_number += 1
                 outString += f"// {cmd},"
                 outString += ",".join([
@@ -289,13 +289,13 @@ def ParseFile(f):
                     "@SP",
                     "A=M",
                     "A=0",
-                    f"@{label_end}",
+                    f"@{label_false}",
                     "0;JMP",
                     f"({label_true})",
                     "@SP",
                     "A=M",
                     "M=-1",
-                    f"({label_end})",
+                    f"({label_false})",
                     "@SP",
                     "M=M+1",
                     ","
