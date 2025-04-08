@@ -109,8 +109,6 @@ SEGLABEL = {
 }
 
 
-# This will be used to generate unique labels when they are needed.
-LABEL_NUMBER = 0
 
 
 POINTER_BASE = 3  # Base address for pointer segment
@@ -234,15 +232,14 @@ def line2Command(line):
     
           
 
-def uniqueLabel():
+def uniqueLabel(id, label_number):
     """ Uses LABEL_NUMBER to generate and return a unique label"""
-    global LABEL_NUMBER
-    LABEL_NUMBER += 1
-    return f"LABEL{LABEL_NUMBER}"
+    label = f"{id.upper()}{label_number}"
+    return label
 
 def ParseFile(f):
-    global LINE_NUMBER
     outString = ""
+    label_number = 0
     for line_number, line in enumerate(f):
         err = f"File {sys.argv[1]}: Line {line_number+1} -> "
         command = line2Command(line)
@@ -278,8 +275,9 @@ def ParseFile(f):
                 HINT: Review the quiz for this unit!
                 """
                 jump = ARITH_TEST[cmd]
-                label_true = uniqueLabel()
-                label_end = uniqueLabel()
+                label_true = uniqueLabel("start",label_number)
+                label_end = uniqueLabel("end",label_number)
+                label_number += 1
                 outString += f"// {cmd},"
                 outString += ",".join([
                     getPopD(),
@@ -288,15 +286,18 @@ def ParseFile(f):
                     "D=M-D",
                     f"@{label_true}",
                     f"D;{jump}",
+                    "@SP",
+                    "A=M",
+                    "A=0",
                     f"@{label_end}",
                     "0;JMP",
                     f"({label_true})",
                     "@SP",
                     "A=M",
                     "M=-1",
+                    f"({label_end})",
                     "@SP",
                     "M=M+1",
-                    f"({label_end})",
                     ","
                 ])
 
@@ -334,7 +335,7 @@ def ParseFile(f):
                 err += f"{args[1]} not in {SEGMENTS.keys()}"
                 raise ValueError(err)
 
-    l = uniqueLabel()
+    l = uniqueLabel("loop", label_number)
     outString += "// Final endless loop,"
     outString += '(%s)'%(l)+',@%s,0;JMP'%l # Final endless loop
     return outString.replace(',','\n')
