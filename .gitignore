@@ -4,3 +4,4 @@
 *.log
 *.gz
 /vm/scripts/prog.asm
+assembler/prog.hack
