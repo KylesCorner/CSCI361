@@ -1,28 +1,28 @@
 // vm_code/SimpleAdd.vm
 // push constant 7
-@7 // load constant value
-D=A // Put 7 into D
-@SP // Push D to stack
-A=M // address stack
-M=D // add D to stack
+@7
+D=A
 @SP
-M=M+1 // increment stack pointer
+A=M
+M=D
+@SP
+M=M+1
 
 // push constant 8
-@8 // load constant value
-D=A // Put 8 into D
-@SP // Push D to stack
-A=M // address stack
-M=D // add D to stack
+@8
+D=A
 @SP
-M=M+1 // increment stack pointer
+A=M
+M=D
+@SP
+M=M+1
 
 // add
-@SP // Pop Y
-AM=M-1 // Decrement stack pointer
-D=M // D = RAM[stack pointer]
-A=A-1 // address X
-M=D+M // X = Y + X
+@SP
+AM=M-1
+D=M
+A=A-1
+M=D+M
 
 // Final endless loop
 (LOOP0)

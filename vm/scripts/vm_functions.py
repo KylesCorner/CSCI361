@@ -16,29 +16,29 @@ Files Tested:
 import sys
 from pathlib import Path
 
-def getPopD(comment = "Pop to D"):
-    return f"@SP // {comment},AM=M-1 // Decrement stack pointer,D=M // D = RAM[stack pointer]"
+def getPopD():
+    return f"@SP,AM=M-1,D=M"
 
-def getPushD(comment = "Push D to stack"):
-    return f"@SP // {comment},A=M // address stack,M=D // add D to stack,@SP,M=M+1 // increment stack pointer"
+def getPushD():
+    return f"@SP,A=M,M=D,@SP,M=M+1"
 
 # The following dictionaries are used to translate VM language commands to machine language.
 
 # This contains the binary operations add, sub, and, or as values. The keys are the Hack ML code to do them.
 # Assume a getPopD() has been called prior to this lookup.
 ARITH_BINARY = {
-    "add": getPopD("Pop Y") + ",A=A-1 // address X,M=D+M // X = Y + X,,",
-    "sub": getPopD("Pop Y") + ",A=A-1 // address X,M=M-D // X = X - Y,,",
-    "and": getPopD("Pop Y") + ",A=A-1 // address X,M=D&M // X = Y and X,,",
-    "or":  getPopD() + ",A=A-1 // address X,M=D|M // X = Y or X,,",
+    "add": getPopD() + ",A=A-1,M=D+M,,",
+    "sub": getPopD() + ",A=A-1,M=M-D,,",
+    "and": getPopD() + ",A=A-1,M=D&M,,",
+    "or":  getPopD() + ",A=A-1,M=D|M,,",
 }
 
 # As above, but now the keys are unary operations neg, not
 # Values are sequences of Hack ML code, seperated by commas.
 # In this case do not assume a getPopD() has been called prior to the lookup
 ARITH_UNARY = {
-    "neg": "@SP // address stack pointer,A=M-1 // address X,M=-M // X = -X,,",
-    "not": "@SP // address stack pointer,A=M-1 // address X,M=!M // X = not X,,",
+    "neg": "@SP,A=M-1,M=-M,,",
+    "not": "@SP,A=M-1,M=!M,,",
 
 }
 
@@ -93,27 +93,27 @@ def pointerSeg(pushpop, seg, index):
     base_address = SEGLABEL[seg]
     if pushpop == "push":
         output_str = ",".join([
-            f"@{index} // load the index",
-            f"D=A // D = index",
-            f"@{base_address} // load the base address of the segment",
-            "A=M // get base pointer",
-            f"A=D+A // final target address",
-            "D=M // D = value at target address",
+            f"@{index}",
+            f"D=A",
+            f"@{base_address}",
+            "A=M",
+            f"A=D+A",
+            "D=M",
             getPushD()
         ])
 
     else:
         output_str = ",".join([
-            f"@{index} // load the index",
-            "D=A // D = index",
-            f"@{base_address} // load base address of the segment",
-            "D=D+M // D = target address",
-            "@R13 // temp storage",
-            "M=D // R13 = address to store popped value",
+            f"@{index}",
+            "D=A",
+            f"@{base_address}",
+            "D=D+M",
+            "@R13",
+            "M=D",
             getPopD(),
-            "@R13 // load temp storage",
-            "A=M // A = target address",
-            "M=D // *segment[index] = popped value",
+            "@R13",
+            "A=M",
+            "M=D",
         ])
 
     return output_str + ",,"
@@ -128,15 +128,15 @@ def fixedSeg(pushpop,seg,index):
 
     if pushpop == "push":
         output_str = ",".join([
-            addr + " // load pointer address",
-            "D=M // D = *address",
+            addr,
+            "D=M",
             getPushD(),
         ])
     else:
         output_str = ",".join([
             getPopD(),
-            addr + " // load pointer address",
-            "M=D // *address = D",
+            addr,
+            "M=D",
         ])
 
 
@@ -152,8 +152,8 @@ def constantSeg(pushpop,seg,index):
 
     if seg == "constant":
         output_str = ",".join([
-            f"@{index} // load constant value",
-            f"D=A // Put {index} into D",
+            f"@{index}",
+            f"D=A",
             getPushD(),
         ])
 
@@ -163,16 +163,16 @@ def constantSeg(pushpop,seg,index):
 
         if pushpop == "push":
             output_str = ",".join([
-                var + " // load variable",
-                "D=M // D = *variable",
+                var,
+                "D=M",
                 getPushD(),
             ])
 
         else:
             output_str = ",".join([
                 getPopD(),
-                var + " // load variable location",
-                "M=D // *variable = D"
+                var,
+                "M=D"
             ])
 
     return output_str + ",,"
@@ -232,24 +232,24 @@ def ParseFile(f):
                 label_number += 1
                 outString += f"// {cmd},"
                 outString += ",".join([
-                    getPopD("Pop Y"),
-                    "@SP // Pop x",        # Pop x
+                    getPopD(),
+                    "@SP",        # Pop x
                     "AM=M-1",
-                    "D=M-D // D = x - y",      # D = x - y
+                    "D=M-D",      # D = x - y
                     f"@{label_true}",
-                    f"D;{jump} // Jump to {label_true} if condition met",  # Jump to true label if condition met
+                    f"D;{jump}",  # Jump to true label if condition met
                     "@SP",
                     "A=M",
-                    "M=0 // false = 0",        # false = 0
+                    "M=0",        # false = 0
                     f"@{label_false}",
                     "0;JMP",
                     f"({label_true})",
                     "@SP",
                     "A=M",
-                    "M=-1 // true = -1",       # true = -1 (0xFFFF)
+                    "M=-1",       # true = -1 (0xFFFF)
                     f"({label_false})",
                     "@SP",
-                    "M=M+1 // push result, SP++",      # push result, SP++
+                    "M=M+1",      # push result, SP++
                     ","
                 ])
 
@@ -309,18 +309,18 @@ SEGMENTS = {
 
 def main():
     global FILENAME
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         with open(sys.argv[1], 'r') as f:
             FILENAME = Path(sys.argv[1]).stem
 
             hack = ParseFile(f)
 
         hack += "\n"
-        write_file = open("prog.asm", "w")
+        write_file = open(sys.argv[2], "w")
         write_file.write(hack)
         write_file.close()
     else:
-        print("Usage: python3 vm_translator.py filename.vm")
+        print("Usage: python3 vm_translator.py filename.vm output.asm")
 
 
 
