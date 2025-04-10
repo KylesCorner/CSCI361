@@ -1,0 +1,72 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{latexsym,amsfonts,amssymb,amsthm,amsmath,graphicx}
+\usepackage[shortlabels]{enumitem}
+
+\setlength{\parindent}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{8.8in}
+\setlength{\topmargin}{0in}
+\setlength{\headheight}{18pt}
+
+
+
+\title{CSCI 361 Week 12 Notes}
+
+\author{
+  Kyle Krstulich
+}
+
+\begin{document}
+
+\maketitle
+
+\section*{Virtual Machine part 2}
+
+We will be implementing the quadratic formula
+\begin{verbatim}
+x_1 = (-b + sqrt(pow(,b2) - 4ac)) / 2a
+x_2 = (-b - sqrt(pow(,b2) - 4ac)) / 2a
+\end{verbatim}
+
+Functions can be a problem, you need to jump to subroutine code. This is an integer only computer,
+so rational numbers will be a problem. We need a mechanism to context switch between functions. The
+function doesn't know anything about the caller.
+
+We need to save the state of the caller.
+\begin{itemize}
+  \item \textbf{Local}: Stores local variable ID callers environment(function). Take the local
+    memory segment and save it somewhere. When you jump to functions you jump to a different local
+    memory segment. From caller local to callee local. 
+
+  \item \textbf{Argument}: Every function has arguments. The argument segment will store these
+    arguments. Caller puts values in argument segment, a deep level of recursion can overflow the
+    stack by filling it with argument segments.
+
+    To pass arguments to subroutine: push stack. To return pop stack.
+
+  \item \textbf{THIS}: Maintains state of stack.
+
+  \item \textbf{THAT}: Maintains state of stack.
+\end{itemize}
+
+\subsection*{Homework}
+New VM keywords to be implemented in chapter 8.
+\begin{itemize}
+  \item Flow control: goto label, if-goto label
+
+  \item Function Use: call f m, function f m, return
+
+    \begin{itemize}
+      \item f is just a label, and address in RAM.
+      \item m is the number of arguments that you pass into the function.
+      \item n is start of function in VM, n is the number of local variables.
+      \item return just makes top of stack the result.
+    \end{itemize}
+\end{itemize}
+
+
+\end{document}
+
