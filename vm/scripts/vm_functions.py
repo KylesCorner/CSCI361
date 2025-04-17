@@ -1,4 +1,5 @@
 """
+
 Kyle Krstulich
 4/1/24
 vm_functions.py
@@ -116,7 +117,7 @@ def pointerSeg(pushpop, seg, index):
             "M=D",
         ])
 
-    return output_str + ",,"
+    return output_str
 
 def fixedSeg(pushpop,seg,index):
     """
@@ -141,7 +142,7 @@ def fixedSeg(pushpop,seg,index):
 
 
     
-    return output_str + ",,"
+    return output_str
 
 
 def constantSeg(pushpop,seg,index):
@@ -175,7 +176,7 @@ def constantSeg(pushpop,seg,index):
                 "M=D"
             ])
 
-    return output_str + ",,"
+    return output_str
 
 def line2Command(line):
     """ This just returns a cleaned up line, removing unneeded spaces and comments"""
@@ -289,6 +290,8 @@ def ParseFile(f):
             else:
                 err += f"Invalid segment, {args[1]} not in {SEGMENTS.keys()}"
                 raise ValueError(err)
+        outString += ",,"
+
 
     l = uniqueLabel("loop", label_number)
     outString += "// Final endless loop,"
@@ -306,6 +309,38 @@ SEGMENTS = {
     "constant": constantSeg,
     "static": constantSeg,
 }
+def _getPushMem(source):
+    """ Helper function to push memory to location src to stack """
+    return ",".join([
+        f"@{source}",
+        "D=A",
+        getPushD(),
+    ])
+
+def _getPushLabel(source):
+    """ Helper function to push the ROM address of a label to the stack. """
+    return ",".join([
+        f"@{source}",
+        "D=M",
+        getPushD(),
+    ])
+
+def _getPopMem(destination):
+    """ Helper function to pop the stack to the memory address dest. """
+    return ",".join([
+        getPopD(),
+        f"@{destination}",
+        "M=D"
+    ])
+
+def _getMoveMem(source, destination):
+    """ Helper function to move the contents of src to memory location dest. """
+    return ",".join([
+        f"@{source}",
+        "D=M",
+        f"@{destination}",
+        "M=D"
+    ])
 
 def main():
     global FILENAME
