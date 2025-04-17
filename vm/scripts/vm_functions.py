@@ -313,7 +313,7 @@ def _getPushMem(source):
     """ Helper function to push memory to location src to stack """
     return ",".join([
         f"@{source}",
-        "D=A",
+        "D=M",
         getPushD(),
     ])
 
@@ -321,7 +321,7 @@ def _getPushLabel(source):
     """ Helper function to push the ROM address of a label to the stack. """
     return ",".join([
         f"@{source}",
-        "D=M",
+        "D=A",
         getPushD(),
     ])
 
