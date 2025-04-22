@@ -1,5 +1,5 @@
 // vm_code/SimpleFunction.vm
-// SimpleFunction.test 2
+// function SimpleFunction.test 2
 (SimpleFunction.test)
 @0
 D=A

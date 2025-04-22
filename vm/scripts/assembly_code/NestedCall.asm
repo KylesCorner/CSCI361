@@ -1,5 +1,5 @@
 // vm_code/NestedCall.vm
-// Sys.init 0
+// function Sys.init 0
 (Sys.init)
 // push constant 4000
 @4000
@@ -104,7 +104,7 @@ M=D
 (LOOP)
 @LOOP
 0;JMP
-// Sys.main 5
+// function Sys.main 5
 (Sys.main)
 @0
 D=A
@@ -471,7 +471,7 @@ M=D
 A=M
 0;JMP
 
-// Sys.add12 0
+// function Sys.add12 0
 (Sys.add12)
 // push constant 4002
 @4002
