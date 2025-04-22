@@ -20,11 +20,80 @@ Files Tested:
 import sys
 from pathlib import Path
 
+# ------------------------------------------------------------------------------------------- 
+#   Helper Functions
+# ------------------------------------------------------------------------------------------- 
+
 def getPopD():
     return f"@SP,AM=M-1,D=M"
 
 def getPushD():
     return f"@SP,A=M,M=D,@SP,M=M+1"
+
+def _getPushMem(source):
+    """ Helper function to push memory to location src to stack """
+    return ",".join([
+        f"@{source}",
+        "D=M",
+        getPushD(),
+        ","
+    ])
+
+def _getPushLabel(source):
+    """ Helper function to push the ROM address of a label to the stack. """
+    return ",".join([
+        f"@{source}",
+        "D=A",
+        getPushD(),
+        ","
+    ])
+
+def _getRestore(destination):
+    return ",".join([
+        "@R13",
+        "AM=M-1",
+        "D=M",
+        f"@{destination}",
+        "M=D",
+        ","
+    ])
+def _getPopMem(destination):
+    """ Helper function to pop the stack to the memory address dest. """
+    return ",".join([
+        getPopD(),
+        f"@{destination}",
+        "A=M",
+        "M=D",
+        ","
+    ])
+
+
+def _getMoveMem(source, destination):
+    """ Helper function to move the contents of src to memory location dest. """
+    return ",".join([
+        f"@{source}",
+        "D=M",
+        f"@{destination}",
+        "M=D",
+    ])
+
+def line2Command(line):
+    """ This just returns a cleaned up line, removing unneeded spaces and comments"""
+    line = line.split("//")[0].strip()
+    return line if line else None
+    
+          
+
+def uniqueLabel(id):
+    """ Uses LABEL_NUMBER to generate and return a unique label"""
+    global LABEL_NUMBER
+    label = f"{id.upper()}{LABEL_NUMBER}"
+    LABEL_NUMBER += 1
+    return label
+
+# ------------------------------------------------------------------------------------------- 
+#   Arithmetic Dictionaries
+# ------------------------------------------------------------------------------------------- 
 
 # The following dictionaries are used to translate VM language commands to machine language.
 
@@ -64,11 +133,18 @@ SEGLABEL = {
     "that": "THAT"
 }
 
+# ------------------------------------------------------------------------------------------- 
+#   Constant and Global variables
+# ------------------------------------------------------------------------------------------- 
+
 FILENAME = "" # Name of .vm file
 POINTER_BASE = 3  # Base address for pointer segment
 TEMP_BASE = 5  # Base address for temp segment
 LABEL_NUMBER = 0
 
+# ------------------------------------------------------------------------------------------- 
+#   Memory Segment Operations
+# ------------------------------------------------------------------------------------------- 
 
 def pointerSeg(pushpop, seg, index):
     """
@@ -191,19 +267,9 @@ def constantSeg(pushpop,seg,index):
 
     return output_str + ",,"
 
-def line2Command(line):
-    """ This just returns a cleaned up line, removing unneeded spaces and comments"""
-    line = line.split("//")[0].strip()
-    return line if line else None
-    
-          
-
-def uniqueLabel(id):
-    """ Uses LABEL_NUMBER to generate and return a unique label"""
-    global LABEL_NUMBER
-    label = f"{id.upper()}{LABEL_NUMBER}"
-    LABEL_NUMBER += 1
-    return label
+# ------------------------------------------------------------------------------------------- 
+#   Keyword Functions
+# ------------------------------------------------------------------------------------------- 
 
 def getIf_goto(label):
     """
@@ -223,7 +289,7 @@ def getGoto(label):
     Return Hack ML string that will unconditionally
     jumpt to the input label.
     """
-    return f"@{label},0;JMP,"
+    return f"@{label},0;JMP,,"
 
 def getLabel(label):
     """
@@ -243,20 +309,10 @@ def getCall(function,nargs):
     l = uniqueLabel("Call_Label")
     segs = ["LCL", "ARG", "THIS", "THAT"]
 
-    outString += ",".join([
-        f"@{l}",
-        "D=A",
-        getPushD(),
-        ","
-    ])
+    outString += _getPushLabel(l)
 
     for item in segs:
-        outString += ",".join([
-            f"@{item}",
-            "D=M",
-            getPushD(),
-            ","
-        ])
+        outString += _getPushMem(item)
 
     outString += ",".join([
         "// ARG = SP - nArgs - 5",
@@ -289,7 +345,7 @@ def getFunction(function,nlocal):
     and initializes local variables to zero.
     See slides 59-63 in the nand2tetris book.
     """
-    output_string = f"// {function} {nlocal},"
+    output_string = f"// function {function} {nlocal},"
     output_string += f"({function}),"
 
     for i in range(int(nlocal)):
@@ -298,6 +354,7 @@ def getFunction(function,nlocal):
         ])
 
     return output_string
+
 def getReturn():
     """
     Returns Hack ML code to perform a return, one
@@ -308,7 +365,7 @@ def getReturn():
     pointer. See slides 64-76 of nand2tetris.org
     project 8.
     """
-    output_string = ""
+    output_string = "// return,"
 
     output_string += "// FRAME = LCL,"
     output_string += _getMoveMem("LCL","R13")
@@ -349,50 +406,30 @@ def getReturn():
     ])
 
     return output_string
-def _getPushMem(source):
-    """ Helper function to push memory to location src to stack """
-    return ",".join([
-        f"@{source}",
-        "D=M",
-        getPushD(),
-    ])
+# ------------------------------------------------------------------------------------------- 
+#   Function Pointer Dictionaries
+# ------------------------------------------------------------------------------------------- 
 
-def _getPushLabel(source):
-    """ Helper function to push the ROM address of a label to the stack. """
-    return ",".join([
-        f"@{source}",
-        "D=A",
-        getPushD(),
-    ])
-
-def _getRestore(destination):
-    return ",".join([
-        "@R13",
-        "AM=M-1",
-        "D=M",
-        f"@{destination}",
-        "M=D",
-        ","
-    ])
-def _getPopMem(destination):
-    """ Helper function to pop the stack to the memory address dest. """
-    return ",".join([
-        getPopD(),
-        f"@{destination}",
-        "A=M",
-        "M=D",
-        ","
-    ])
-
-
-def _getMoveMem(source, destination):
-    """ Helper function to move the contents of src to memory location dest. """
-    return ",".join([
-        f"@{source}",
-        "D=M",
-        f"@{destination}",
-        "M=D",
-    ])
+# Mapping segment names to handling functions
+SEGMENTS = {
+    "local": pointerSeg,
+    "argument": pointerSeg,
+    "this": pointerSeg,
+    "that": pointerSeg,
+    "pointer": fixedSeg,
+    "temp": fixedSeg,
+    "constant": constantSeg,
+    "static": constantSeg,
+}
+# More jank, this time to define the function pointers for flow control.
+PROG_FLOW = {
+    'if-goto':getIf_goto, # 1
+    'goto':getGoto, # 1
+    'label':getLabel, # 1
+    'call':getCall, # 2
+    'function':getFunction, # 2
+    'return':getReturn, # 0
+}
 
 def ParseFile(f):
     outString = f"// {sys.argv[1]},"
@@ -529,28 +566,7 @@ def ParseFile(f):
     outString += '(%s)'%(l)+',@%s,0;JMP'%l # Final endless loop
     return outString.replace(',','\n')
 
-# Mapping segment names to handling functions
-SEGMENTS = {
-    "local": pointerSeg,
-    "argument": pointerSeg,
-    "this": pointerSeg,
-    "that": pointerSeg,
-    "pointer": fixedSeg,
-    "temp": fixedSeg,
-    "constant": constantSeg,
-    "static": constantSeg,
-}
-# More jank, this time to define the function pointers for flow control.
-PROG_FLOW = {
-    'if-goto':getIf_goto, # 1
-    'goto':getGoto, # 1
-    'label':getLabel, # 1
-    'call':getCall, # 2
-    'function':getFunction, # 2
-    'return':getReturn, # 0
-}
-
-def main():
+def run():
     global FILENAME
     if len(sys.argv) == 3:
         with open(sys.argv[1], 'r') as f:
@@ -564,6 +580,10 @@ def main():
         write_file.close()
     else:
         print("Usage: python3 vm_translator.py filename.vm output.asm")
+
+
+def main():
+    run()
 
 
 

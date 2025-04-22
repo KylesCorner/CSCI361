@@ -104,6 +104,7 @@ M=D
 (LOOP)
 @LOOP
 0;JMP
+
 // function Sys.main 5
 (Sys.main)
 @0
