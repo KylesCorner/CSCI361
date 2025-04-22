@@ -412,6 +412,7 @@ D=M
 A=A-1
 M=D+M
 
+// return
 // FRAME = LCL
 @LCL
 D=M
@@ -532,6 +533,7 @@ D=M
 A=A-1
 M=D+M
 
+// return
 // FRAME = LCL
 @LCL
 D=M
