@@ -130,7 +130,7 @@ def pointerSeg(pushpop, seg, index):
             "M=D",
         ])
 
-    return output_str
+    return output_str + ",,"
 
 def fixedSeg(pushpop,seg,index):
     """
@@ -155,7 +155,7 @@ def fixedSeg(pushpop,seg,index):
 
 
     
-    return output_str
+    return output_str + ",,"
 
 
 def constantSeg(pushpop,seg,index):
@@ -189,7 +189,7 @@ def constantSeg(pushpop,seg,index):
                 "M=D"
             ])
 
-    return output_str
+    return output_str + ",,"
 
 def line2Command(line):
     """ This just returns a cleaned up line, removing unneeded spaces and comments"""
@@ -214,7 +214,8 @@ def getIf_goto(label):
     return "\n".join([
     getPopD(),
     f"@{label}",  # Load the destination label
-    "D;JNE"       # Jump if D != 0 (i.e., if the value was true)
+    "D;JNE", # Jump if D != 0 (i.e., if the value was true)
+    ","
     ])
 
 def getGoto(label):
@@ -222,13 +223,13 @@ def getGoto(label):
     Return Hack ML string that will unconditionally
     jumpt to the input label.
     """
-    return f"@{label},0;JMP"
+    return f"@{label},0;JMP,"
 
 def getLabel(label):
     """
     Returns Hack ML for a label, eg (label)
     """
-    return f"({label})"
+    return f"({label}),"
 def getCall(function,nargs):
     """
     This function returns the Hack ML code to
@@ -271,13 +272,12 @@ def getCall(function,nargs):
     outString += ",".join([
         "// LCL = SP",
         _getMoveMem("SP", "LCL"),
-        ",",
-        "// goto Fn",
+        ",// goto Fn",
         f"@{function}",
         "0;JMP",
-        ",",
         "// (return address)",
-        f"({l})"
+        f"({l})",
+        ","
     ])
 
 
@@ -289,12 +289,12 @@ def getFunction(function,nlocal):
     and initializes local variables to zero.
     See slides 59-63 in the nand2tetris book.
     """
-    output_string = f"({function}),"
+    output_string = f"// {function} {nlocal},"
+    output_string += f"({function}),"
 
     for i in range(int(nlocal)):
         output_string += ",".join([
             SEGMENTS["constant"]("push","constant",0),
-            ","
         ])
 
     return output_string
@@ -371,7 +371,7 @@ def _getRestore(destination):
         "AM=M-1",
         "D=M",
         f"@{destination}",
-        "M=D"
+        "M=D",
         ","
     ])
 def _getPopMem(destination):
@@ -380,7 +380,7 @@ def _getPopMem(destination):
         getPopD(),
         f"@{destination}",
         "A=M",
-        "M=D"
+        "M=D",
         ","
     ])
 
@@ -391,8 +391,7 @@ def _getMoveMem(source, destination):
         f"@{source}",
         "D=M",
         f"@{destination}",
-        "M=D"
-        ","
+        "M=D",
     ])
 
 def ParseFile(f):
@@ -523,7 +522,6 @@ def ParseFile(f):
             else:
                 err += f"Invalid segment, {args[1]} not in {SEGMENTS.keys()}"
                 raise ValueError(err)
-        outString += ",,"
 
 
     l = uniqueLabel("loop")
