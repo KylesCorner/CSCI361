@@ -1,0 +1,171 @@
+\documentclass[12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{latexsym,amsfonts,amssymb,amsthm,amsmath,graphicx, tikz,xparse}
+\usetikzlibrary{positioning}
+\usepackage{algorithm,algorithmicx,algpseudocode}
+\usepackage[shortlabels]{enumitem}
+
+\setlength{\parindent}{0in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{8.8in}
+\setlength{\topmargin}{0in}
+\setlength{\headheight}{18pt}
+
+\newenvironment{SafeTikz}
+  {\noindent\ignorespaces%
+   \begin{center}%
+   \begin{tikzpicture}[node distance=0pt]}
+  {\end{tikzpicture}%
+   \end{center}%
+   \ignorespacesafterend}
+
+% Macro to draw a vertical stack from comma-separated values
+\newcommand{\drawstack}[1]{%
+  \begin{SafeTikz}
+    \foreach \elem [count=\i] in {#1} {
+      \node[draw, minimum width=2cm, minimum height=1cm, anchor=south] (n\i) at (0, \i - 1) {\elem};
+    }
+  \end{SafeTikz}
+}
+
+\title{CSCI 361 Week 13 Notes}
+
+\author{
+  Kyle Krstulich
+}
+
+\begin{document}
+
+\maketitle
+
+\section*{Announcements}
+Chapter 8 will be the last major programming assignment. May 1st will be exam 2, while the final is
+on the syllabus, Tuesday on finals week.
+
+Helper functions due Thursday, while next week we will cover the harder sections.
+
+\section*{Function Calls}
+
+High level language:
+\begin{verbatim}
+  if (cond)
+    s1
+  else
+    s2
+\end{verbatim}
+
+In order to translate this to a VM language. (not pythonic indentation)
+\begin{verbatim}
+  ~cond (n = not)
+  if-goto L1
+    s1
+    goto L2
+  label L1
+    s2
+  label L2
+\end{verbatim}
+
+To call a function you must first push all arguments to stack.
+
+\subsection*{Call Stack and Recursion}
+\begin{verbatim}
+  subroutine a:
+    call b
+    call c
+  subroutine b:
+    call c
+    call d
+  subroutine c:
+    call d
+  subroutine d:
+    null
+\end{verbatim}
+
+Trace:
+\begin{verbatim}
+  call a
+    call b
+    push a
+      call c
+      push b
+        call d
+        push c
+        return d
+      return c
+      pop c
+    call d
+      push b
+      return d
+    pop b
+  call c
+    push a
+    call d
+      push c
+      pop c
+    pop a
+  pop a
+
+\end{verbatim}
+
+\subsection*{Function POV}
+
+Calling function POV
+\begin{itemize}
+  \item push arguments to stack
+  \item Static segment is set based on filename. 
+  \item 'call' function (jump to that code)
+  \item return value. Top of stack contains the function return value.
+  \item memory segments; argument, local, static, this, that, pointer. Are as they were before the
+    call. Function call does not mutate the memory segments.
+\end{itemize}
+
+POV of called function
+\begin{itemize}
+  \item Local segment initialized/reserved set to 0 (in hack). 
+  \item Static segment is set based on filename. 
+  \item Working stack appears to be empty. this, that, pointer, temp are undefined. This defines a
+    pristine workspace for the function.
+  \item will push return values to top of stack.
+\end{itemize}
+
+\section*{Function Call Implementation}
+At the point of calling a function:
+\drawstack{
+  {LCL var n-1},
+  {$\cdots$},
+  {LCL var 1},
+  {LCL var 0},
+  {saved That},
+  {saved THIS},
+  {saved ARG},
+  {saved LCL},
+  {return address},
+  {arg n-1},
+  {$\cdots$},
+  {arg 1},
+  {arg 0},
+  {Working Stack}
+}
+\begin{itemize}
+  \item \textbf{Return Address}: uses push label. Lets us know where to come back to after function
+    call is finished. Is a ROM address.
+  \item \textbf{Frame}: the LCL, ARG, THIS, THAT, and return address.
+  \item \textbf{Local Variables}: LCL var n
+  \item \textbf{LCL, ARG, THIS, THAT} uses pushMem()
+\end{itemize}
+
+Overall handing a function call:
+\begin{itemize}
+  \item Save the return address
+  \item Save the callers segment pointers (LCL, ARG, THIS, THAT)
+  \item Reposition ARG (for the callee) argmuments are located after the caller working stack.
+  \item Reposition LCL (for the callee)
+  \item Go to execute the callee's code (@function, 0;JMP)
+\end{itemize}
+
+
+\end{document}
+
+

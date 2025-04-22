@@ -12,6 +12,9 @@ Files Tested:
     StackTest Passed!
     PointerTest Passed!
     StaticTest Passed!
+
+    SimpleFunction Passed!
+    NestedCall Passed!
 """
 
 import sys
@@ -64,6 +67,7 @@ SEGLABEL = {
 FILENAME = "" # Name of .vm file
 POINTER_BASE = 3  # Base address for pointer segment
 TEMP_BASE = 5  # Base address for temp segment
+LABEL_NUMBER = 0
 
 
 def pointerSeg(pushpop, seg, index):
@@ -93,15 +97,24 @@ def pointerSeg(pushpop, seg, index):
     
     base_address = SEGLABEL[seg]
     if pushpop == "push":
+        # output_str = ",".join([
+        #     f"@{index}",
+        #     f"D=A",
+        #     f"@{base_address}",
+        #     "A=M",
+        #     f"A=D+A",
+        #     "D=M",
+        #     getPushD()
+        # ])
         output_str = ",".join([
-            f"@{index}",
-            f"D=A",
             f"@{base_address}",
-            "A=M",
+            "D=M",
+            f"@{index}",
             f"A=D+A",
             "D=M",
             getPushD()
         ])
+
 
     else:
         output_str = ",".join([
@@ -185,14 +198,205 @@ def line2Command(line):
     
           
 
-def uniqueLabel(id, label_number):
+def uniqueLabel(id):
     """ Uses LABEL_NUMBER to generate and return a unique label"""
-    label = f"{id.upper()}{label_number}"
+    global LABEL_NUMBER
+    label = f"{id.upper()}{LABEL_NUMBER}"
+    LABEL_NUMBER += 1
     return label
+
+def getIf_goto(label):
+    """
+    Returns Hack ML to goto the label specified as
+    an input arguement if the top entry of the stack is
+    true.
+    """
+    return "\n".join([
+    getPopD(),
+    f"@{label}",  # Load the destination label
+    "D;JNE"       # Jump if D != 0 (i.e., if the value was true)
+    ])
+
+def getGoto(label):
+    """
+    Return Hack ML string that will unconditionally
+    jumpt to the input label.
+    """
+    return f"@{label},0;JMP"
+
+def getLabel(label):
+    """
+    Returns Hack ML for a label, eg (label)
+    """
+    return f"({label})"
+def getCall(function,nargs):
+    """
+    This function returns the Hack ML code to
+    invoke the `call function nargs` type command in
+    the Hack virtual machine (VM) language.
+    In order for this to work, review slides
+    46-58 in the Project 8 presentation available
+    on the nand2tetris.org website.
+    """
+    outString = f"// call {function} {nargs},"
+    l = uniqueLabel("Call_Label")
+    segs = ["LCL", "ARG", "THIS", "THAT"]
+
+    outString += ",".join([
+        f"@{l}",
+        "D=A",
+        getPushD(),
+        ","
+    ])
+
+    for item in segs:
+        outString += ",".join([
+            f"@{item}",
+            "D=M",
+            getPushD(),
+            ","
+        ])
+
+    outString += ",".join([
+        "// ARG = SP - nArgs - 5",
+        "@SP",
+        "D=M",
+        f"@{int(nargs) + 5}",
+        "D=D-A",
+        "@ARG",
+        "M=D",
+        ","
+    ])
+
+    outString += ",".join([
+        "// LCL = SP",
+        _getMoveMem("SP", "LCL"),
+        ",",
+        "// goto Fn",
+        f"@{function}",
+        "0;JMP",
+        ",",
+        "// (return address)",
+        f"({l})"
+    ])
+
+
+
+    return outString
+def getFunction(function,nlocal):
+    """
+    Return the Hack ML code to represent a function which sets a label
+    and initializes local variables to zero.
+    See slides 59-63 in the nand2tetris book.
+    """
+    output_string = f"({function}),"
+
+    for i in range(int(nlocal)):
+        output_string += ",".join([
+            SEGMENTS["constant"]("push","constant",0),
+            ","
+        ])
+
+    return output_string
+def getReturn():
+    """
+    Returns Hack ML code to perform a return, one
+    of the more complex operations in this unit.
+    The code restores all the memory segments to the
+    calling function. It also has to restore the
+    instruction pointer (IP) and reset the stack
+    pointer. See slides 64-76 of nand2tetris.org
+    project 8.
+    """
+    output_string = ""
+
+    output_string += "// FRAME = LCL,"
+    output_string += _getMoveMem("LCL","R13")
+
+    output_string += "// RET = *(FRAME - 5),"
+    output_string += ",".join([
+        "@5",
+        "A=D-A",
+        "D=M",
+        "@R14   // R!$ =RET",
+        "M=D",
+        ","
+    ])
+
+    output_string += "// *ARG = pop(),"
+    output_string += _getPopMem("ARG")
+
+    output_string += "// SP = ARG + 1,"
+    output_string += ",".join([
+        "@ARG",
+        "D=M+1",
+        "@SP",
+        "M=D",
+        ","
+    ])
+
+    to_restore = ["THAT", "THIS", "ARG", "LCL"]
+    for index, item in enumerate(to_restore):
+        output_string += f"// Restore {item} = *(FRAME - {index + 1}),"
+        output_string += _getRestore(item)
+
+    output_string += "// goto RET,"
+    output_string += ",".join([
+        "@R14",
+        "A=M",
+        "0;JMP",
+        ",",
+    ])
+
+    return output_string
+def _getPushMem(source):
+    """ Helper function to push memory to location src to stack """
+    return ",".join([
+        f"@{source}",
+        "D=M",
+        getPushD(),
+    ])
+
+def _getPushLabel(source):
+    """ Helper function to push the ROM address of a label to the stack. """
+    return ",".join([
+        f"@{source}",
+        "D=A",
+        getPushD(),
+    ])
+
+def _getRestore(destination):
+    return ",".join([
+        "@R13",
+        "AM=M-1",
+        "D=M",
+        f"@{destination}",
+        "M=D"
+        ","
+    ])
+def _getPopMem(destination):
+    """ Helper function to pop the stack to the memory address dest. """
+    return ",".join([
+        getPopD(),
+        f"@{destination}",
+        "A=M",
+        "M=D"
+        ","
+    ])
+
+
+def _getMoveMem(source, destination):
+    """ Helper function to move the contents of src to memory location dest. """
+    return ",".join([
+        f"@{source}",
+        "D=M",
+        f"@{destination}",
+        "M=D"
+        ","
+    ])
 
 def ParseFile(f):
     outString = f"// {sys.argv[1]},"
-    label_number = 0
     for line_number, line in enumerate(f):
         err = f"File {sys.argv[1]}: Line {line_number+1} -> "
         command = line2Command(line)
@@ -228,9 +432,8 @@ def ParseFile(f):
                 HINT: Review the quiz for this unit!
                 """
                 jump = ARITH_TEST[cmd]
-                label_true = uniqueLabel("true",label_number)
-                label_false = uniqueLabel("false",label_number)
-                label_number += 1
+                label_true = uniqueLabel("true")
+                label_false = uniqueLabel("false")
                 outString += f"// {cmd},"
                 outString += ",".join([
                     getPopD(),
@@ -253,6 +456,35 @@ def ParseFile(f):
                     "M=M+1",      # push result, SP++
                     ","
                 ])
+
+            elif args[0] in PROG_FLOW.keys():
+                """
+                Handles project 8 keywords:
+                function,
+                return,
+                call,
+                goto,
+                if-goto,
+                label
+                """
+
+                # TODO: Proper Error handling
+
+                num_params = len(args)
+
+                if num_params == 1:
+                    # return
+                    outString += PROG_FLOW[args[0]]()
+
+                elif num_params == 2:
+                    # if-goto, goto, and label
+                    cmd, label = args[0:2]
+                    outString += PROG_FLOW[cmd](label)
+
+                elif num_params == 3:
+                    #call and function
+                    cmd, fn, n = args[0:3]
+                    outString += PROG_FLOW[cmd](fn, n)
 
             # invalid arithmetic operation
             elif len(args) < 3:
@@ -286,6 +518,7 @@ def ParseFile(f):
                 outString += f"// {pushpop} {seg} {index},"
                 outString += SEGMENTS[seg](pushpop,seg,int(index))
 
+
             # invalid segment
             else:
                 err += f"Invalid segment, {args[1]} not in {SEGMENTS.keys()}"
@@ -293,7 +526,7 @@ def ParseFile(f):
         outString += ",,"
 
 
-    l = uniqueLabel("loop", label_number)
+    l = uniqueLabel("loop")
     outString += "// Final endless loop,"
     outString += '(%s)'%(l)+',@%s,0;JMP'%l # Final endless loop
     return outString.replace(',','\n')
@@ -309,38 +542,15 @@ SEGMENTS = {
     "constant": constantSeg,
     "static": constantSeg,
 }
-def _getPushMem(source):
-    """ Helper function to push memory to location src to stack """
-    return ",".join([
-        f"@{source}",
-        "D=M",
-        getPushD(),
-    ])
-
-def _getPushLabel(source):
-    """ Helper function to push the ROM address of a label to the stack. """
-    return ",".join([
-        f"@{source}",
-        "D=A",
-        getPushD(),
-    ])
-
-def _getPopMem(destination):
-    """ Helper function to pop the stack to the memory address dest. """
-    return ",".join([
-        getPopD(),
-        f"@{destination}",
-        "M=D"
-    ])
-
-def _getMoveMem(source, destination):
-    """ Helper function to move the contents of src to memory location dest. """
-    return ",".join([
-        f"@{source}",
-        "D=M",
-        f"@{destination}",
-        "M=D"
-    ])
+# More jank, this time to define the function pointers for flow control.
+PROG_FLOW = {
+    'if-goto':getIf_goto, # 1
+    'goto':getGoto, # 1
+    'label':getLabel, # 1
+    'call':getCall, # 2
+    'function':getFunction, # 2
+    'return':getReturn, # 0
+}
 
 def main():
     global FILENAME
