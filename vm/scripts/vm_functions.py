@@ -330,7 +330,7 @@ def getCall(function,nargs):
         _getMoveMem("SP", "LCL"),
         ",// goto Fn",
         f"@{function}",
-        "0;JMP",
+        "0;JMP,",
         "// (return address)",
         f"({l})",
         ","

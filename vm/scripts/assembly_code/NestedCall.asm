@@ -91,6 +91,7 @@ M=D
 // goto Fn
 @Sys.main
 0;JMP
+
 // (return address)
 (CALL_LABEL0)
 
@@ -315,6 +316,7 @@ M=D
 // goto Fn
 @Sys.add12
 0;JMP
+
 // (return address)
 (CALL_LABEL1)
 
