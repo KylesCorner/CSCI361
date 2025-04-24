@@ -359,9 +359,23 @@ def getReturn():
     pointer. See slides 64-76 of nand2tetris.org
     project 8.
     """
-    output_string = " // return,"
+    #overall idea
+    # // The code below creates and uses two temporary variables:
+    # // endFrame and retAddr;
+    # // The pointer notation *addr is used to denote: RAM[addr].
+    # endFrame = LCL            // gets the address at the frame’s end
+    # retAddr = *(endFrame – 5) // gets the return address
+    # *ARG = pop()              // puts the return value for the caller
+    # SP = ARG + 1              // repositions SP
+    # THAT = *(endFrame – 1)    // restores THAT
+    # THIS = *(endFrame – 2)    // restores THIS
+    # ARG = *(endFrame – 3)     // restores ARG
+    # LCL = *(endFrame – 4)     // restores LCL\
+    # goto retAddr              // jumps to the return address
 
+    output_string = " // return,"
     output_string += " // FRAME = LCL,"
+
     output_string += _getMoveMem("LCL","R13")
 
     output_string += " // RET = *(FRAME - 5),"
