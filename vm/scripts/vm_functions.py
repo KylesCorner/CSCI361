@@ -15,9 +15,13 @@ Files Tested:
 
     SimpleFunction Passed!
     NestedCall Passed!
+    FibonacciElement Passed!
+    FibonacciSeries Passed!
 """
 
 import sys
+import os
+import glob
 from pathlib import Path
 
 # ------------------------------------------------------------------------------------------- 
@@ -173,15 +177,6 @@ def pointerSeg(pushpop, seg, index):
     
     base_address = SEGLABEL[seg]
     if pushpop == "push":
-        # output_str = ",".join([
-        #     f"@{index}",
-        #     f"D=A",
-        #     f"@{base_address}",
-        #     "A=M",
-        #     f"A=D+A",
-        #     "D=M",
-        #     getPushD()
-        # ])
         output_str = ",".join([
             f"@{base_address}",
             "D=M",
@@ -305,7 +300,7 @@ def getCall(function,nargs):
     46-58 in the Project 8 presentation available
     on the nand2tetris.org website.
     """
-    outString = f"// call {function} {nargs},"
+    outString = f" // call {function} {nargs},"
     l = uniqueLabel("Call_Label")
     segs = ["LCL", "ARG", "THIS", "THAT"]
 
@@ -315,7 +310,7 @@ def getCall(function,nargs):
         outString += _getPushMem(item)
 
     outString += ",".join([
-        "// ARG = SP - nArgs - 5",
+        " // ARG = SP - nArgs - 5",
         "@SP",
         "D=M",
         f"@{int(nargs) + 5}",
@@ -326,9 +321,9 @@ def getCall(function,nargs):
     ])
 
     outString += ",".join([
-        "// LCL = SP",
+        " // LCL = SP",
         _getMoveMem("SP", "LCL"),
-        ",// goto Fn",
+        ", // goto Fn",
         f"@{function}",
         "0;JMP",
         f"({l})  // (return address)",
@@ -344,7 +339,7 @@ def getFunction(function,nlocal):
     and initializes local variables to zero.
     See slides 59-63 in the nand2tetris book.
     """
-    output_string = f"// function {function} {nlocal},"
+    output_string = f" // function {function} {nlocal},"
     output_string += f"({function}),"
 
     for i in range(int(nlocal)):
@@ -364,12 +359,12 @@ def getReturn():
     pointer. See slides 64-76 of nand2tetris.org
     project 8.
     """
-    output_string = "// return,"
+    output_string = " // return,"
 
-    output_string += "// FRAME = LCL,"
+    output_string += " // FRAME = LCL,"
     output_string += _getMoveMem("LCL","R13")
 
-    output_string += "// RET = *(FRAME - 5),"
+    output_string += " // RET = *(FRAME - 5),"
     output_string += ",".join([
         "@5",
         "A=D-A",
@@ -379,10 +374,10 @@ def getReturn():
         ","
     ])
 
-    output_string += "// *ARG = pop(),"
+    output_string += " // *ARG = pop(),"
     output_string += _getPopMem("ARG")
 
-    output_string += "// SP = ARG + 1,"
+    output_string += " // SP = ARG + 1,"
     output_string += ",".join([
         "@ARG",
         "D=M+1",
@@ -393,10 +388,10 @@ def getReturn():
 
     to_restore = ["THAT", "THIS", "ARG", "LCL"]
     for index, item in enumerate(to_restore):
-        output_string += f"// Restore {item} = *(FRAME - {index + 1}),"
+        output_string += f" // Restore {item} = *(FRAME - {index + 1}),"
         output_string += _getRestore(item)
 
-    output_string += "// goto RET,"
+    output_string += " // goto RET,"
     output_string += ",".join([
         "@R14",
         "A=M",
@@ -431,7 +426,7 @@ PROG_FLOW = {
 }
 
 def ParseFile(f):
-    outString = f"// {sys.argv[1]},"
+    outString = f", // {sys.argv[1]},"
     for line_number, line in enumerate(f):
         err = f"File {sys.argv[1]}: Line {line_number+1} -> "
         command = line2Command(line)
@@ -446,14 +441,14 @@ def ParseFile(f):
                 to each by pulling a key from the appropriate dictionary.
                 Remember, it's always about putting together strings of Hack ML code.
                 """
-                outString += f"// {cmd},"
+                outString += f" // {cmd},"
                 outString += ARITH_BINARY[cmd]
 
             elif cmd in ARITH_UNARY.keys():
                 """
                 As above, but now for the unary operators (neg, not)
                 """
-                outString += f"// {cmd},"
+                outString += f" // {cmd},"
                 outString += ARITH_UNARY[cmd]
 
             elif cmd in ARITH_TEST.keys():
@@ -469,7 +464,7 @@ def ParseFile(f):
                 jump = ARITH_TEST[cmd]
                 label_true = uniqueLabel("true")
                 label_false = uniqueLabel("false")
-                outString += f"// {cmd},"
+                outString += f" // {cmd},"
                 outString += ",".join([
                     getPopD(),
                     "@SP",        # Pop x
@@ -561,7 +556,7 @@ def ParseFile(f):
 
 
     l = uniqueLabel("loop")
-    outString += "// Final endless loop,"
+    outString += " // Final endless loop,"
     outString += '(%s)'%(l)+',@%s,0;JMP'%l # Final endless loop
     return outString.replace(',','\n')
 
@@ -580,11 +575,42 @@ def run():
     else:
         print("Usage: python3 vm_translator.py filename.vm output.asm")
 
+def getInit(sysinit = True):
+    """
+    Write the VM initialization code:
+        Set the SP to 256.
+        Initialize system pointers to -1.
+        Call Sys.Init()
+        Halt loop
+    Passing sysinit = False oly sets the SP.  This allows the simpler
+    VM test scripts to run correctly.
+    """
+    os = ""
+    os += '@256,D=A,@SP,M=D,'
+    if sysinit:
+        os += 'A=A+1,M=-1,A=A+1,M=-1,A=A+1,M=-1,A=A+1,M=-1,'  # initialize ARG, LCL, THIS, THAT
+        os += getCall('Sys.init', 0) # release control to init
+        halt = uniqueLabel("halt")
+        os += '@%s, (%s), 0;JMP,' % (halt, halt)
+    return os
 
-def main():
-    run()
+source = sys.argv[1].strip()
 
+out_string = ""
 
+if os.path.isdir(source):
+    filelist = glob.glob(source+"*.vm")
+    out_string += getInit()
+    for filename in filelist:
+        f = open(filename)
+        out_string += ParseFile(f)
+        f.close()
+else:
+    filename = source
+    f = open(source)
+    out_string += getInit(sysinit=False)
+    out_string += ParseFile(f)
+    f.close()
 
-if __name__ == "__main__":
-    main()
+print(out_string.replace(',','\n'))
+
