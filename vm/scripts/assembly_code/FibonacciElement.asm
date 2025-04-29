@@ -226,12 +226,12 @@ M=M+1
  // FRAME = LCL
 @LCL
 D=M
-@R13
+@R14
 M=D // RET = *(FRAME - 5)
 @5
 A=D-A
 D=M
-@R14   // R!$ =RET
+@R15   // R!$ =RET
 M=D
 
  // *ARG = pop()
@@ -249,35 +249,35 @@ D=M+1
 M=D
 
  // Restore THAT = *(FRAME - 1)
-@R13
+@R14
 AM=M-1
 D=M
 @THAT
 M=D
 
  // Restore THIS = *(FRAME - 2)
-@R13
+@R14
 AM=M-1
 D=M
 @THIS
 M=D
 
  // Restore ARG = *(FRAME - 3)
-@R13
+@R14
 AM=M-1
 D=M
 @ARG
 M=D
 
  // Restore LCL = *(FRAME - 4)
-@R13
+@R14
 AM=M-1
 D=M
 @LCL
 M=D
 
  // goto RET
-@R14
+@R15
 A=M
 0;JMP
 
@@ -469,12 +469,12 @@ M=D+M
  // FRAME = LCL
 @LCL
 D=M
-@R13
+@R14
 M=D // RET = *(FRAME - 5)
 @5
 A=D-A
 D=M
-@R14   // R!$ =RET
+@R15   // R!$ =RET
 M=D
 
  // *ARG = pop()
@@ -492,35 +492,35 @@ D=M+1
 M=D
 
  // Restore THAT = *(FRAME - 1)
-@R13
+@R14
 AM=M-1
 D=M
 @THAT
 M=D
 
  // Restore THIS = *(FRAME - 2)
-@R13
+@R14
 AM=M-1
 D=M
 @THIS
 M=D
 
  // Restore ARG = *(FRAME - 3)
-@R13
+@R14
 AM=M-1
 D=M
 @ARG
 M=D
 
  // Restore LCL = *(FRAME - 4)
-@R13
+@R14
 AM=M-1
 D=M
 @LCL
 M=D
 
  // goto RET
-@R14
+@R15
 A=M
 0;JMP
 

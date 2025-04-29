@@ -13,10 +13,12 @@ Files Tested:
     PointerTest Passed!
     StaticTest Passed!
 
+    BasicLoop Passed!
     SimpleFunction Passed!
     NestedCall Passed!
     FibonacciElement Passed!
     FibonacciSeries Passed!
+    StaticsTets Passed!
 """
 
 import sys
@@ -54,7 +56,7 @@ def _getPushLabel(source):
 
 def _getRestore(destination):
     return ",".join([
-        "@R13",
+        "@R14",
         "AM=M-1",
         "D=M",
         f"@{destination}",
@@ -313,6 +315,7 @@ def getCall(function,nargs):
         " // ARG = SP - nArgs - 5",
         "@SP",
         "D=M",
+        "@LCL",
         f"@{int(nargs) + 5}",
         "D=D-A",
         "@ARG",
@@ -376,14 +379,14 @@ def getReturn():
     output_string = " // return,"
     output_string += " // FRAME = LCL,"
 
-    output_string += _getMoveMem("LCL","R13")
+    output_string += _getMoveMem("LCL","R14")
 
     output_string += " // RET = *(FRAME - 5),"
     output_string += ",".join([
         "@5",
         "A=D-A",
         "D=M",
-        "@R14   // R!$ =RET",
+        "@R15   // R!$ =RET",
         "M=D",
         ","
     ])
@@ -407,7 +410,7 @@ def getReturn():
 
     output_string += " // goto RET,"
     output_string += ",".join([
-        "@R14",
+        "@R15",
         "A=M",
         "0;JMP",
         ",",
@@ -617,6 +620,7 @@ if os.path.isdir(source):
     out_string += getInit()
     for filename in filelist:
         f = open(filename)
+        FILENAME = Path(filename).stem
         out_string += ParseFile(f)
         f.close()
 else:
